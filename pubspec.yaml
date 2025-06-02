@@ -1,0 +1,64 @@
+name: agri_connect
+description: "AgriConnect is a transformative mobile application designed to bridge the gap between farmers, suppliers, and agricultural experts. By leveraging modern technology, AgriConnect empowers farmers with real-time access to resources, advice, and marketplaces. Whether you're seeking high-quality seeds, expert farming tips, or a platform to sell your produce, AgriConnect connects you to a thriving agricultural community, ensuring sustainability, growth, and innovation in farming practices."
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  go_router: ^14.8.1
+  fpdart: ^1.1.1
+  supabase_flutter: ^2.8.4
+  path_provider: ^2.1.5
+  flutter_riverpod: ^2.6.1
+  image_picker: ^1.1.2
+  cached_network_image: ^3.4.1
+  flutter_dotenv: ^5.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.5
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - .env.development
+    - .env
+
+flutter_native_splash:
+  color: "#9fe69a"
+  image: assets/images/logo-transparent.png
+  color_dark: "#1a1a1a"
+  image_dark: assets/images/logo-transparent.png
+
+  android_12:
+    image: assets/images/logo-transparent.png
+    icon_background_color: "#9fe69a"
+    image_dark: assets/images/logo-transparent.png
+    icon_background_color_dark: "#1a1a1a"
+
+  web: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/images/app_icon.png"
+  web:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+    background_color: "#ffffff"
+    theme_color: "#ffffff "
