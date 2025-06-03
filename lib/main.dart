@@ -11,10 +11,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   //Load .env in production mode, .env.development otherwise
-  //Prevent loading dotenv in web builds
-  if (!kIsWeb) {
-    await dotenv.load(fileName: kReleaseMode ? '.env' : '.env.development');
-  }
+  await dotenv.load(fileName: kReleaseMode ? '.env' : '.env.development');
 
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
