@@ -1,7 +1,7 @@
 import 'package:agri_connect/core/shared/providers/supabase_client_provider.dart';
-import 'package:agri_connect/features/auth/data/datasources/auth_remote_data.dart';
-import 'package:agri_connect/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:agri_connect/features/auth/domain/repositories/auth_repository.dart';
+import 'package:agri_connect/features/auth/datasources/auth_remote_data.dart';
+import 'package:agri_connect/features/auth/models/user_model.dart';
+import 'package:agri_connect/features/auth/repositories/auth_repository.dart';
 import 'package:agri_connect/features/auth/presentation/providers/auth_state.dart'
     as auth;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,10 +12,17 @@ final authStateProvider = StreamProvider<User?>((ref) {
   return supabase.auth.onAuthStateChange.map((event) => event.session?.user);
 });
 
+final userDetailsProvider = StreamProvider.family<UserModel?, String>((
+  ref,
+  userId,
+) {
+  return ref.watch(authNotifierProvider.notifier).loadUserDetails(userId);
+});
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final remote = AuthRemoteDataSourceImpl(client);
-  return AuthRepositoryImpl(remote);
+  return AuthRepository(remote);
 });
 
 // for create, read,update, delete purposes
@@ -44,7 +51,7 @@ class AuthNotifier extends StateNotifier<auth.AuthState> {
       type: type,
     );
 
-    result.match(
+    result.fold(
       (failure) => state = auth.AuthFailure(failure.message),
       (_) => state = auth.AuthSuccess(),
     );
@@ -63,12 +70,28 @@ class AuthNotifier extends StateNotifier<auth.AuthState> {
     );
   }
 
-  Future<void> loadCurrentUser() async {
-    final result = await _repository.currentUser();
+  Future<void> signOut() async {
+    state = auth.AuthLoading();
+    final result = await _repository.signOut();
 
     result.fold(
       (failure) => state = auth.AuthFailure(failure.message),
-      (_) => state = auth.AuthSuccess(),
+      (_) => state = auth.AuthInitial(),
     );
+  }
+
+  Stream<UserModel?> loadUserDetails(String userId) {
+    return _repository.currentUser(userId).map((either) {
+      return either.fold(
+        (failure) {
+          // state = auth.AuthFailure(failure.message);
+          return null;
+        },
+        (user) {
+          // state = auth.AuthSuccess();
+          return user;
+        },
+      );
+    });
   }
 }

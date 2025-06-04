@@ -1,6 +1,10 @@
 import 'package:agri_connect/core/config/supabase_config.dart';
-import 'package:agri_connect/core/routes/router.dart';
+import 'package:agri_connect/core/shared/pages/error_page.dart';
+import 'package:agri_connect/core/shared/pages/loading_page.dart';
 import 'package:agri_connect/core/themes/themes.dart';
+import 'package:agri_connect/features/auth/presentation/pages/sign_in_page.dart';
+import 'package:agri_connect/features/auth/presentation/providers/auth_provider.dart';
+import 'package:agri_connect/features/products/presentation/pages/products_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -26,12 +30,22 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = createRouter(ref);
-    return MaterialApp.router(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Agriconnect',
-      routerConfig: router,
+      title: 'Agri connect',
       theme: AppTheme.agriThemeLight,
+      home: ref
+          .watch(authStateProvider)
+          .when(
+            data: (user) {
+              if (user == null) {
+                return SignInPage();
+              }
+              return ProductsPage();
+            },
+            error: (error, st) => ErrorPage(error: error.toString()),
+            loading: () => const LoadingPage(),
+          ),
     );
   }
 }

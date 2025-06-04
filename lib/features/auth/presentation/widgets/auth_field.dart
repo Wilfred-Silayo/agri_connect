@@ -4,12 +4,14 @@ class AuthField extends StatefulWidget {
   final String hinttext;
   final TextEditingController controler;
   final bool isObscureText;
+  final String? Function(String?)? validator;
 
   const AuthField({
     super.key,
     required this.hinttext,
     required this.controler,
     this.isObscureText = false,
+    this.validator,
   });
 
   @override
@@ -47,7 +49,7 @@ class _AuthFieldState extends State<AuthField> {
                 )
                 : null,
       ),
-      validator: (value) {
+      validator: widget.validator ?? (value) {
         if (value!.isEmpty) {
           return "${widget.hinttext} is missing!";
         }

@@ -15,7 +15,7 @@ class AppTheme {
     scaffoldBackgroundColor: AppPalette.neutralLight,
     appBarTheme: AppBarTheme(
       backgroundColor: AppPalette.primaryGreen,
-      foregroundColor: Colors.white,
+      foregroundColor: Colors.black,
     ),
 
     inputDecorationTheme: InputDecorationTheme(

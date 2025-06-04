@@ -3,6 +3,7 @@ import 'package:agri_connect/core/enums/user_enums.dart';
 import 'package:agri_connect/core/shared/widgets/show_loading_dialog.dart';
 import 'package:agri_connect/core/shared/widgets/show_snackbar.dart';
 import 'package:agri_connect/core/utils/dropdown_controller.dart';
+import 'package:agri_connect/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:agri_connect/features/auth/presentation/providers/auth_provider.dart';
 import 'package:agri_connect/features/auth/presentation/providers/auth_state.dart'
     as auth;
@@ -11,7 +12,6 @@ import 'package:agri_connect/features/auth/presentation/widgets/auth_gradient.da
 import 'package:agri_connect/features/auth/presentation/widgets/custom_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
   const SignUpPage({super.key});
@@ -25,6 +25,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   final emailController = TextEditingController();
   final nameController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
   final userTypeController = DropdownController("farmer");
 
   @override
@@ -35,8 +36,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     super.dispose();
   }
 
-  void signUp() {
-    ref
+  Future<void> signUp() async {
+    await ref
         .read(authNotifierProvider.notifier)
         .signUp(
           name: nameController.text.trim(),
@@ -52,14 +53,16 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       if (next is auth.AuthLoading) {
         showLoadingDialog(context, message: 'Signing up...');
       } else {
-        hideLoadingDialog(context); // Ensure it's hidden on any next state
+        hideLoadingDialog(context);
       }
 
       if (next is auth.AuthFailure) {
         showSnackBar(context, next.message);
       } else if (next is auth.AuthSuccess) {
-        // Navigate to signin
-        context.go('/signin');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SignInPage()),
+        );
       }
     });
 
@@ -101,20 +104,47 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                     hinttext: "Password",
                     controler: passwordController,
                     isObscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password is required';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 15),
+                  AuthField(
+                    hinttext: "Confirm password",
+                    controler: confirmPasswordController,
+                    isObscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please confirm your password';
+                      }
+                      if (value != passwordController.text) {
+                        return 'Passwords do not match';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 20),
                   AuthGradient(
                     text: 'Sign Up',
-                    onPressed: () {
+                    onPressed: () async {
                       if (formKey.currentState!.validate()) {
-                        signUp();
+                        await signUp();
                       }
                     },
                   ),
                   const SizedBox(height: 20),
                   InkWell(
                     onTap: () {
-                      (context).push('/signin');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SignInPage()),
+                      );
                     },
                     child: RichText(
                       text: TextSpan(

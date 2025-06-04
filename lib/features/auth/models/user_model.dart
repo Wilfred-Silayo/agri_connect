@@ -1,19 +1,29 @@
 import 'dart:convert';
 import 'package:agri_connect/core/enums/user_enums.dart';
-import 'package:agri_connect/features/auth/domain/entities/user.dart';
 
-class UserModel extends User {
+class UserModel {
+  final String id;
+  final String? username;
+  final String fullName;
+  final String email;
+  final UserType userType;
+  final String? bio;
+  final String? avatarUrl;
+  final String? phone;
+  final String? address;
+  final DateTime createdAt;
+
   const UserModel({
-    required super.id,
-    required super.username,
-    required super.userType,
-    required super.createdAt,
-    super.fullName,
-    super.email,
-    super.bio,
-    super.avatarUrl,
-    super.phone,
-    super.address,
+    required this.id,
+    required this.fullName,
+    required this.userType,
+    required this.createdAt,
+    this.username,
+    required this.email,
+    this.bio,
+    this.avatarUrl,
+    this.phone,
+    this.address,
   });
 
   UserModel copyWith({
@@ -45,9 +55,9 @@ class UserModel extends User {
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
       id: map['id'] as String,
-      username: map['username'] as String,
-      fullName: map['full_name'] as String?,
-      email: map['email'] as String?,
+      username: map['username'] as String?,
+      fullName: map['full_name'] as String,
+      email: map['email'] as String,
       userType: (map['user_type'] as String).toUserTypeEnum(),
       bio: map['bio'] as String?,
       avatarUrl: map['avatar_url'] as String?,

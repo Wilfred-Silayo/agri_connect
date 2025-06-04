@@ -1,15 +1,15 @@
 import 'package:agri_connect/core/constants/pallete.dart';
-import 'package:agri_connect/core/shared/widgets/loader.dart';
 import 'package:agri_connect/core/shared/widgets/show_loading_dialog.dart';
 import 'package:agri_connect/core/shared/widgets/show_snackbar.dart';
+import 'package:agri_connect/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:agri_connect/features/auth/presentation/providers/auth_provider.dart';
 import 'package:agri_connect/features/auth/presentation/widgets/auth_field.dart';
 import 'package:agri_connect/features/auth/presentation/widgets/auth_gradient.dart';
 import 'package:agri_connect/features/auth/presentation/providers/auth_state.dart'
     as auth;
+import 'package:agri_connect/features/products/presentation/pages/products_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
@@ -30,8 +30,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     super.dispose();
   }
 
-  void signIn() {
-    ref
+  Future<void> signIn() async {
+    await ref
         .read(authNotifierProvider.notifier)
         .signIn(
           email: emailController.text.trim(),
@@ -45,14 +45,16 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       if (next is auth.AuthLoading) {
         showLoadingDialog(context, message: 'Signing in...');
       } else {
-        hideLoadingDialog(context); // Ensure it's hidden on any next state
+        hideLoadingDialog(context);
       }
 
       if (next is auth.AuthFailure) {
         showSnackBar(context, next.message);
       } else if (next is auth.AuthSuccess) {
-        // Navigate to products
-        context.go('/products');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ProductsPage()),
+        );
       }
     });
 
@@ -87,16 +89,19 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                     const SizedBox(height: 20),
                     AuthGradient(
                       text: 'Sign In',
-                      onPressed: () {
+                      onPressed: () async {
                         if (formKey.currentState!.validate()) {
-                          signIn();
+                          await signIn();
                         }
                       },
                     ),
                     const SizedBox(height: 20),
                     InkWell(
                       onTap: () {
-                        context.push('/signup');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => SignUpPage()),
+                        );
                       },
                       child: RichText(
                         text: TextSpan(

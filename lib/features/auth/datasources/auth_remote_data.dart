@@ -1,22 +1,22 @@
 import 'package:agri_connect/core/exceptions/server_exceptions.dart';
-import 'package:agri_connect/features/auth/data/models/user_model.dart';
+import 'package:agri_connect/features/auth/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract interface class AuthRemoteDataSource {
-  Session? get currentUserSession;
-
-  Future<UserModel> signUpWithEmailAndPassword({
+  Future<void> signUpWithEmailAndPassword({
     required String name,
     required String email,
     required String password,
     required String type,
   });
-  Future<UserModel> signInWithEmailAndPassword({
+  Future<void> signInWithEmailAndPassword({
     required String email,
     required String password,
   });
 
-  Future<UserModel?> getCurrentUserData();
+  Stream<UserModel?> getUserDataStream(String userId);
+
+  Future<void> signOut();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -24,10 +24,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl(this.supabaseClient);
 
   @override
-  Session? get currentUserSession => supabaseClient.auth.currentSession;
-
-  @override
-  Future<UserModel> signUpWithEmailAndPassword({
+  Future<void> signUpWithEmailAndPassword({
     required String email,
     required String name,
     required String password,
@@ -48,22 +45,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final insertResponse = await supabaseClient.from('users').insert({
         'id': user.id,
         'email': email,
-        'name': name,
-        'type': type,
+        'full_name': name,
+        'user_type': type,
       });
 
       if (insertResponse.error != null) {
         throw ServerException(insertResponse.error!.message);
       }
-
-      return UserModel.fromMap(user.toJson());
     } catch (e) {
-      throw ServerException(e.toString());
+      rethrow;
     }
   }
 
   @override
-  Future<UserModel> signInWithEmailAndPassword({
+  Future<void> signInWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
@@ -75,28 +70,29 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.user == null) {
         throw ServerException('User is null!');
       }
-      return UserModel.fromMap(response.user!.toJson());
     } catch (e) {
-      throw ServerException(e.toString());
+      rethrow;
     }
   }
 
   @override
-  Future<UserModel?> getCurrentUserData() async {
+  Future<void> signOut() async {
     try {
-      if (currentUserSession != null) {
-        final userData = await supabaseClient
-            .from('users')
-            .select()
-            .eq('id', currentUserSession!.user.id);
-        return UserModel.fromMap(userData.first);
-      }
-
-      return null;
+      await supabaseClient.auth.signOut();
     } catch (e) {
-      throw ServerException(e.toString());
+      rethrow;
     }
   }
+
+  @override
+  Stream<UserModel?> getUserDataStream(String userId) {
+    return supabaseClient
+        .from('users')
+        .stream(primaryKey: ['id'])
+        .eq('id', userId)
+        .map((rows) {
+          if (rows.isEmpty) return null;
+          return UserModel.fromMap(rows.first);
+        });
+  }
 }
-
-
