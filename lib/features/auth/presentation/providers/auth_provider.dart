@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:agri_connect/core/shared/providers/supabase_client_provider.dart';
 import 'package:agri_connect/features/auth/datasources/auth_remote_data.dart';
 import 'package:agri_connect/features/auth/models/user_model.dart';
@@ -51,10 +53,14 @@ class AuthNotifier extends StateNotifier<auth.AuthState> {
       type: type,
     );
 
-    result.fold(
-      (failure) => state = auth.AuthFailure(failure.message),
-      (_) => state = auth.AuthSuccess(),
-    );
+    result.fold((failure) => state = auth.AuthFailure(failure.message), (
+      _,
+    ) async {
+      // supabase automatically signin after signup unless email comfirmation is required
+      //we have to signout first before redirecting to signinpage
+      await _repository.signOut();
+      state = auth.AuthInitial();
+    });
   }
 
   Future<void> signIn({required String email, required String password}) async {
@@ -80,12 +86,71 @@ class AuthNotifier extends StateNotifier<auth.AuthState> {
     );
   }
 
+  Future<bool> checkUsernameAvailability(String username) async {
+    return await _repository.checkUsernameAvailability(username);
+  }
+
+  Future<void> updateUserProfile(
+    UserModel updatedUser,
+    File? newProfileImage,
+  ) async {
+    state = auth.AuthLoading();
+
+    String? newAvatarUrl;
+    if (newProfileImage != null) {
+      newAvatarUrl = await uploadProfileImage(updatedUser.id, newProfileImage);
+      if (newAvatarUrl == null) {
+        // Upload failed, state already set inside uploadProfileImage
+        return;
+      }
+      updatedUser = updatedUser.copyWith(avatarUrl: newAvatarUrl);
+    }
+
+    final result = await _repository.updateUserProfile(updatedUser);
+    result.fold(
+      (failure) => state = auth.AuthFailure(failure.message),
+      (_) => state = auth.AuthSuccess(),
+    );
+  }
+
+  Future<String?> uploadProfileImage(String userId, File imageFile) async {
+    final result = await _repository.uploadProfileImage(userId, imageFile);
+    String? imageUrl;
+    result.fold(
+      (failure) => state = auth.AuthFailure(failure.message),
+      (url) => imageUrl = url,
+    );
+    return imageUrl;
+  }
+
+  Future<void> changeEmail({required String newEmail}) async {
+    state = auth.AuthLoading();
+
+    final result = await _repository.changeEmail(newEmail: newEmail);
+
+    result.fold(
+      (failure) => state = auth.AuthFailure(failure.message),
+      (_) => state = auth.AuthSuccess(),
+    );
+  }
+
+  Future<void> changePassword({required String newPassword}) async {
+    state = auth.AuthLoading();
+
+    final result = await _repository.changePassword(newPassword: newPassword);
+
+    result.fold(
+      (failure) => state = auth.AuthFailure(failure.message),
+      (_) => state = auth.AuthSuccess(),
+    );
+  }
+
   Stream<UserModel?> loadUserDetails(String userId) {
     return _repository.currentUser(userId).map((either) {
       return either.fold(
         (failure) {
           // state = auth.AuthFailure(failure.message);
-          return null;
+          throw Exception(failure.message);
         },
         (user) {
           // state = auth.AuthSuccess();

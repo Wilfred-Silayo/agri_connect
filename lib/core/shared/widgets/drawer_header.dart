@@ -1,3 +1,4 @@
+import 'package:agri_connect/core/shared/widgets/custom_profile_image.dart';
 import 'package:agri_connect/features/auth/models/user_model.dart';
 import 'package:flutter/material.dart';
 
@@ -19,18 +20,7 @@ class UserDrawerHeader extends StatelessWidget {
       child: Row(
         children: [
           // Profile avatar with fallback
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.white,
-            backgroundImage:
-                (user.avatarUrl != null && user.avatarUrl!.isNotEmpty)
-                    ? NetworkImage(user.avatarUrl!)
-                    : null,
-            child:
-                (user.avatarUrl == null || user.avatarUrl!.isEmpty)
-                    ? Icon(Icons.person, size: 30, color: Colors.green.shade700)
-                    : null,
-          ),
+          CustomProfileImage(url: user.avatarUrl),
           const SizedBox(width: 16),
           // User info
           Expanded(

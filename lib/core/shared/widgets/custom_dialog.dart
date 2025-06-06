@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CustomDialog extends StatelessWidget {
-  final VoidCallback onConfirm;
+  final void Function() onConfirm;
   final String title;
   final String content;
 
@@ -26,8 +26,8 @@ class CustomDialog extends StatelessWidget {
         ),
         TextButton(
           onPressed: () {
-            onConfirm();
             Navigator.of(context).pop();
+            onConfirm();
           },
           child: const Text('Confirm'),
         ),

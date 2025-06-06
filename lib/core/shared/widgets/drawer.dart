@@ -10,6 +10,7 @@ import 'package:agri_connect/features/auth/presentation/pages/sign_in_page.dart'
 import 'package:agri_connect/features/auth/presentation/providers/auth_provider.dart';
 import 'package:agri_connect/features/auth/presentation/providers/auth_state.dart'
     as auth;
+import 'package:agri_connect/features/products/presentation/pages/stocks_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -84,6 +85,14 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> {
                       ? ListTile(
                         leading: Icon(Icons.inventory),
                         title: Text('Stocks'),
+                        onTap:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => StocksPage(userId: user.id),
+                              ),
+                            ),
                       )
                       : SizedBox(),
                   ListTile(
@@ -116,7 +125,9 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> {
                             () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ProfilePage(),
+                                builder:
+                                    (context) =>
+                                        ProfilePage(userId: userData.id),
                               ),
                             ),
                       ),
