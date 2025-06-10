@@ -8,3 +8,13 @@ final categoryProvider = FutureProvider<List<CategoryModel>>((ref) async {
   final data = response as List;
   return data.map((e) => CategoryModel.fromMap(e)).toList();
 });
+
+final categoryStreamProvider = StreamProvider<List<CategoryModel>>((ref) {
+  final stream = Supabase.instance.client
+      .from('categories')
+      .stream(primaryKey: ['id'])
+      .order('name', ascending: true)
+      .map((data) => data.map((item) => CategoryModel.fromMap(item)).toList());
+
+  return stream;
+});

@@ -2,7 +2,6 @@ import 'package:agri_connect/core/shared/widgets/error_display.dart';
 import 'package:agri_connect/core/shared/widgets/loader.dart';
 import 'package:agri_connect/core/shared/widgets/show_loading_dialog.dart';
 import 'package:agri_connect/core/shared/widgets/show_snackbar.dart';
-import 'package:agri_connect/core/utils/stock_query.dart';
 import 'package:agri_connect/features/products/models/stock_model.dart';
 import 'package:agri_connect/features/products/presentation/pages/stock_details_page.dart';
 import 'package:agri_connect/features/products/presentation/providers/stock_provider.dart';
@@ -23,7 +22,9 @@ class StocksPage extends ConsumerStatefulWidget {
 class _StocksPageState extends ConsumerState<StocksPage> {
   @override
   Widget build(BuildContext context) {
-    final stockAsyncValue = ref.watch(fetchStockProvider(const StockQuery()));
+    final stockAsyncValue = ref.watch(
+      fetchStockByUserIdProvider(widget.userId),
+    );
 
     ref.listen<StockState>(stockNotifierProvider, (previous, next) {
       if (next is StockLoading) {
@@ -36,7 +37,7 @@ class _StocksPageState extends ConsumerState<StocksPage> {
         showSnackBar(context, next.message);
       } else if (next is StockSuccess) {
         showSnackBar(context, next.message);
-        ref.invalidate(fetchStockProvider(const StockQuery()));
+        ref.invalidate(fetchStockByUserIdProvider(widget.userId));
         Navigator.pop(context, true);
       }
     });
@@ -113,7 +114,9 @@ class _StocksPageState extends ConsumerState<StocksPage> {
             stockToEdit: stock,
             userId: widget.userId,
             onSubmit: (updatedStock, images) {
-               ref.read(stockNotifierProvider.notifier).updateStock(stock.id, updatedStock, images);
+              ref
+                  .read(stockNotifierProvider.notifier)
+                  .updateStock(stock.id, updatedStock, images);
             },
           ),
     );

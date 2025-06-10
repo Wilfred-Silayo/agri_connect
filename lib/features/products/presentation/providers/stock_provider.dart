@@ -31,6 +31,15 @@ final fetchStockProvider = StreamProvider.family<List<StockModel>?, StockQuery>(
   },
 );
 
+final fetchStockByUserIdProvider =
+    FutureProvider.family<List<StockModel>?, String>((ref, id) {
+      final notifier = ref.watch(stockNotifierProvider.notifier);
+      return notifier.fetchStockByUserId(id);
+    });
+
+final selectedCategoryProvider = StateProvider<String?>((ref) => null);
+final searchQueryProvider = StateProvider<String>((ref) => '');
+
 class StockNotifier extends StateNotifier<StockState> {
   final StockRepository _repository;
   StockNotifier(this._repository) : super(StockInitial());
@@ -71,12 +80,11 @@ class StockNotifier extends StateNotifier<StockState> {
   }
 
   // FETCH BY USER ID
-  Future<void> fetchStockByUserId(String userId) async {
-    state = StockLoading('Fetching stock...');
+  Future<List<StockModel>?> fetchStockByUserId(String userId) async {
     final result = await _repository.fetchStockByUserId(userId);
-    result.fold(
-      (failure) => state = StockFailure(failure.message),
-      (stocks) => state = StockSuccess('Fetched successfully'),
+    return result.fold(
+      (failure) => throw Exception(failure.message),
+      (stocks) => stocks,
     );
   }
 

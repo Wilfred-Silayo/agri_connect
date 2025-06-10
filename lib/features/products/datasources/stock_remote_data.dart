@@ -26,7 +26,7 @@ class StockRemoteDataSourceImpl implements StockRemoteDataSource {
             ? supabaseClient
                 .from('stocks')
                 .stream(primaryKey: ['id'])
-                .eq('id', id)
+                .eq('category_id', id)
             : supabaseClient.from('stocks').stream(primaryKey: ['id']);
 
     return stream.map((data) {
