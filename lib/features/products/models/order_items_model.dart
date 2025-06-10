@@ -5,8 +5,8 @@ import 'package:agri_connect/core/enums/order_status_enum.dart';
 class OrderItemModel {
   final String id;
   final String orderId;
-  final String? stockId;
-  final String? sellerId;
+  final String stockId;
+  final String sellerId;
   final int quantity;
   final double price;
   final OrderStatus status;
@@ -17,8 +17,8 @@ class OrderItemModel {
   const OrderItemModel({
     required this.id,
     required this.orderId,
-    this.stockId,
-    this.sellerId,
+    required this.stockId,
+    required this.sellerId,
     required this.quantity,
     required this.price,
     required this.status,

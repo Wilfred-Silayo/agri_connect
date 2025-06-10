@@ -12,6 +12,8 @@ final accountProvider = StateNotifierProvider<AccountNotifier, AccountState>((
   return AccountNotifier(AccountRepositoryImpl(client));
 });
 
+
+
 class AccountNotifier extends StateNotifier<AccountState> {
   final AccountRemote remote;
 

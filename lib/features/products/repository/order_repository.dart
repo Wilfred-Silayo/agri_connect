@@ -1,6 +1,7 @@
 import 'package:agri_connect/core/exceptions/failures.dart';
 import 'package:agri_connect/core/exceptions/server_exceptions.dart';
 import 'package:agri_connect/features/products/datasources/order_remote_data.dart';
+import 'package:agri_connect/features/products/models/order_items_model.dart';
 import 'package:agri_connect/features/products/models/order_model.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
@@ -86,6 +87,21 @@ class OrderRepository {
   Future<Either<Failure, void>> deleteOrder(String id) async {
     try {
       await remoteDataSource.deleteOrder(id);
+      return right(null);
+    } on sb.AuthException catch (e) {
+      return left(Failure(e.message));
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure("Unexpected error: ${e.toString()}"));
+    }
+  }
+
+  Future<Either<Failure, void>> createOrderItems(
+    List<OrderItemModel> items,
+  ) async {
+    try {
+      await remoteDataSource.createOrderItems(items);
       return right(null);
     } on sb.AuthException catch (e) {
       return left(Failure(e.message));

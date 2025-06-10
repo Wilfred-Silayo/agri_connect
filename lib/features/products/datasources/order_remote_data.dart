@@ -1,3 +1,4 @@
+import 'package:agri_connect/features/products/models/order_items_model.dart';
 import 'package:agri_connect/features/products/models/order_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -8,6 +9,7 @@ abstract interface class OrderRemoteDataSource {
   Future<OrderModel> createOrder(OrderModel order);
   Future<OrderModel> updateOrder(String id, Map<String, dynamic> updatedFields);
   Future<void> deleteOrder(String id);
+  Future<void> createOrderItems(List<OrderItemModel> items);
 }
 
 class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
@@ -112,4 +114,9 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       rethrow;
     }
   }
+  @override
+  Future<void> createOrderItems(List<OrderItemModel> items) async{
+
+  }
+
 }

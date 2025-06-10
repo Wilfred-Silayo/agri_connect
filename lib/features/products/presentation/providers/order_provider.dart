@@ -13,23 +13,12 @@ import 'package:uuid/uuid.dart';
 
 final uuid = Uuid();
 
-final orderNotifierProvider = StateNotifierProvider<OrderNotifier, OrderState>((ref) {
+final orderNotifierProvider = StateNotifierProvider<OrderNotifier, OrderState>((
+  ref,
+) {
   final repository = ref.watch(orderRepositoryProvider);
-  return OrderNotifier(
-    repository: repository,
-    getBalance: (userId) async {
-      final account = await ref.read(accountProvider.notifier).getAccountById(userId);
-      return account.balance;
-    },
-    updateBalance: (userId, amount) async{
-      return await ref.read(accountProvider.notifier).deposit(userId, amount);
-    },
-    saveOrderItems: (items) {
-      return ref.read(orderItemProvider).createOrderItems(items);
-    },
-  );
+  return OrderNotifier(repository: repository);
 });
-
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   final client = ref.watch(supabaseClientProvider);
@@ -42,7 +31,6 @@ final ordersByDateRangeProvider =
       final notifier = ref.watch(orderNotifierProvider.notifier);
       return notifier.fetchOrdersByDateRange(range.start, range.end);
     });
-    
 
 OrderModel generateOrder(String buyerId, Map<StockModel, int> cart) {
   final orderId = uuid.v4();
@@ -85,49 +73,78 @@ List<OrderItemModel> generateOrderItems(
 
 class OrderNotifier extends StateNotifier<OrderState> {
   final OrderRepository repository;
-  final Future<double> Function(String userId) getBalance;
-  final Future<void> Function(String userId, double newBalance) updateBalance;
-  final Future<void> Function(List<OrderItemModel>) saveOrderItems;
 
-  OrderNotifier({
-    required this.repository,
-    required this.getBalance,
-    required this.updateBalance,
-    required this.saveOrderItems,
-  }) : super(OrderInitial());
+  OrderNotifier({required this.repository}) : super(OrderInitial());
 
   // Main method for placing an order with balance check
   Future<void> placeOrderWithBalanceCheck({
     required String buyerId,
+    required double balance,
     required Map<StockModel, int> cart,
+    required WidgetRef ref,
   }) async {
     try {
       state = OrderLoading();
 
+      // Step 1: Calculate total order amount
       final totalAmount = cart.entries
           .map((e) => e.key.price * e.value)
           .fold(0.0, (sum, val) => sum + val);
 
-      final currentBalance = await getBalance(buyerId);
-
-      if (currentBalance < totalAmount) {
+      // Step 2: Check if user has enough balance
+      if (balance < totalAmount) {
         state = OrderFailure("Insufficient balance to complete the order.");
         return;
       }
 
+      // Step 3: Generate order and items
       final order = generateOrder(buyerId, cart);
       final orderItems = generateOrderItems(order.id, cart);
 
-      final either = await repository.createOrder(order);
-      await saveOrderItems(orderItems);
-      await updateBalance(buyerId, currentBalance - totalAmount);
+      // Step 4: Create order record
+      final orderResult = await repository.createOrder(order);
 
-      either.fold(
-        (failure) => state = OrderFailure(failure.message),
-        (order) => state = OrderSuccess(),
+      await orderResult.fold(
+        (failure) async {
+          state = OrderFailure(failure.message);
+        },
+        (savedOrder) async {
+          // Step 5: Save order items
+          final orderItemResult = await repository.createOrderItems(orderItems);
+          await orderItemResult.fold(
+            (failure) async {
+              state = OrderFailure(
+                "Failed to save order items: ${failure.message}",
+              );
+              return;
+            },
+            (items) async {
+              // Step 6: Deduct balance from buyer
+              final accountNotifier = ref.read(
+               accountProvider.notifier,
+              );
+              await accountNotifier.withdraw(buyerId, totalAmount);
+
+              // Step 7: Deposit earnings to each seller (group by sellerId)
+              final sellerEarnings = <String, double>{};
+
+              for (var item in orderItems) {
+                sellerEarnings[item.sellerId] =
+                    (sellerEarnings[item.sellerId] ?? 0) +
+                    (item.price * item.quantity);
+              }
+
+              for (final entry in sellerEarnings.entries) {
+                await accountNotifier.deposit(entry.key, entry.value);
+              }
+
+              state = OrderSuccess();
+            },
+          );
+        },
       );
     } catch (e) {
-      state = OrderFailure(e.toString());
+      state = OrderFailure("An error occurred: $e");
     }
   }
 
