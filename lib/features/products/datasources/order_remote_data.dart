@@ -114,9 +114,18 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       rethrow;
     }
   }
+
   @override
-  Future<void> createOrderItems(List<OrderItemModel> items) async{
-
+  Future<void> createOrderItems(List<OrderItemModel> items) async {
+    try {
+      if (items.isEmpty) {
+        throw Exception('No order items provided');
+      }
+      await supabaseClient
+          .from('order_items')
+          .insert(items.map((e) => e.toMap()).toList());
+    } catch (e) {
+      rethrow;
+    }
   }
-
 }

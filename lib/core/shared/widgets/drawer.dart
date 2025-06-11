@@ -3,6 +3,7 @@ import 'package:agri_connect/core/shared/widgets/custom_dialog.dart';
 import 'package:agri_connect/core/shared/widgets/drawer_header.dart';
 import 'package:agri_connect/core/shared/widgets/show_loading_dialog.dart';
 import 'package:agri_connect/core/shared/widgets/show_snackbar.dart';
+import 'package:agri_connect/features/account/presentation/pages/user_account.dart';
 import 'package:agri_connect/features/auth/presentation/pages/change_email.dart';
 import 'package:agri_connect/features/auth/presentation/pages/change_password.dart';
 import 'package:agri_connect/features/auth/presentation/pages/profile_page.dart';
@@ -113,6 +114,17 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> {
                         title: Text('Purchases'),
                       )
                       : SizedBox(),
+                  ListTile(
+                    leading: Icon(Icons.account_balance_wallet),
+                    title: Text('Account'),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AccountPage(userId: user.id),
+                          ),
+                        ),
+                  ),
                   ExpansionTile(
                     leading: const Icon(Icons.settings),
                     title: const Text('Settings'),

@@ -12,40 +12,28 @@ final accountProvider = StateNotifierProvider<AccountNotifier, AccountState>((
   return AccountNotifier(AccountRepositoryImpl(client));
 });
 
-
+final userAccountProvider = FutureProvider.family<AccountModel, String>((
+  ref,
+  userId,
+) {
+  return ref.read(accountProvider.notifier).getAccountById(userId);
+});
 
 class AccountNotifier extends StateNotifier<AccountState> {
   final AccountRemote remote;
 
   AccountNotifier(this.remote) : super(AccountInitial());
 
-  Future<void> loadAccount(String userId) async {
-    state = AccountLoading();
-    try {
-      final account = await remote.getAccount(userId);
-      if (account != null) {
-        state = AccountLoaded(account);
-      } else {
-        state = AccountLoaded(
-          AccountModel(
-            id: '',
-            userId: userId,
-            balance: 0,
-            createdAt: DateTime.now(),
-          ),
-        );
-      }
-    } catch (e) {
-      state = AccountError(e.toString());
-    }
-  }
-
   Future<AccountModel> getAccountById(String userId) async {
-  final account = await remote.getAccount(userId);
-  if (account != null) return account;
-  return AccountModel(id: '', userId: userId, balance: 0, createdAt: DateTime.now());
-}
-
+    final account = await remote.getAccount(userId);
+    if (account != null) return account;
+    return AccountModel(
+      id: '',
+      userId: userId,
+      balance: 0.00,
+      createdAt: DateTime.now(),
+    );
+  }
 
   Future<void> deposit(String userId, double amount) async {
     try {
@@ -54,6 +42,7 @@ class AccountNotifier extends StateNotifier<AccountState> {
       state = AccountLoaded(account);
     } catch (e) {
       state = AccountError(e.toString());
+      rethrow;
     }
   }
 
@@ -64,6 +53,7 @@ class AccountNotifier extends StateNotifier<AccountState> {
       state = AccountLoaded(account);
     } catch (e) {
       state = AccountError(e.toString());
+      rethrow;
     }
   }
 }

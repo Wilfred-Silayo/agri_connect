@@ -23,7 +23,7 @@ class StockRepository {
     } on ServerException catch (e) {
       yield left(Failure(e.message));
     } catch (e) {
-      yield left(Failure("Unexpected error: \${e.toString()}"));
+      yield left(Failure("Unexpected error: ${e.toString()}"));
     }
   }
 
@@ -38,7 +38,7 @@ class StockRepository {
     } on ServerException catch (e) {
       return left(Failure(e.message));
     } catch (e) {
-      return left(Failure("Unexpected error: \${e.toString()}"));
+      return left(Failure("Unexpected error: ${e.toString()}"));
     }
   }
 
@@ -51,7 +51,7 @@ class StockRepository {
     } on ServerException catch (e) {
       return left(Failure(e.message));
     } catch (e) {
-      return left(Failure("Unexpected error: \${e.toString()}"));
+      return left(Failure("Unexpected error: ${e.toString()}"));
     }
   }
 
@@ -64,7 +64,7 @@ class StockRepository {
     } on ServerException catch (e) {
       return left(Failure(e.message));
     } catch (e) {
-      return left(Failure("Unexpected error: \${e.toString()}"));
+      return left(Failure("Unexpected error: ${e.toString()}"));
     }
   }
 
@@ -80,7 +80,22 @@ class StockRepository {
     } on ServerException catch (e) {
       return left(Failure(e.message));
     } catch (e) {
-      return left(Failure("Unexpected error: \${e.toString()}"));
+      return left(Failure("Unexpected error: ${e.toString()}"));
+    }
+  }
+
+  Future<Either<Failure, List<StockModel>>> updateMultipleStocks(
+    List<Map<String, int>> items,
+  ) async {
+    try {
+      final updated = await remoteDataSource.updateMultipleStocks(items);
+      return right(updated);
+    } on sb.AuthException catch (e) {
+      return left(Failure(e.message));
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure("Unexpected error: ${e.toString()}"));
     }
   }
 
@@ -93,7 +108,7 @@ class StockRepository {
     } on ServerException catch (e) {
       return left(Failure(e.message));
     } catch (e) {
-      return left(Failure("Unexpected error: \${e.toString()}"));
+      return left(Failure("Unexpected error: ${e.toString()}"));
     }
   }
 }

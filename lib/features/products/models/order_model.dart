@@ -5,14 +5,14 @@ class OrderModel {
   final String id;
   final String buyerId;
   final double totalAmount;
-  OrderStatus? status;
+  final OrderStatus status;
   final DateTime createdAt;
 
   OrderModel({
     required this.id,
     required this.buyerId,
     required this.totalAmount,
-    this.status,
+    required this.status,
     required this.createdAt,
   });
 
@@ -46,7 +46,7 @@ class OrderModel {
     'id': id,
     'buyer_id': buyerId,
     'total_amount': totalAmount,
-    'status': status?.value,
+    'status': status.value,
     'created_at': createdAt.toIso8601String(),
   };
 

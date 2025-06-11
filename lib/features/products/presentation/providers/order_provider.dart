@@ -7,7 +7,9 @@ import 'package:agri_connect/features/products/models/order_items_model.dart';
 import 'package:agri_connect/features/products/models/order_model.dart';
 import 'package:agri_connect/features/products/models/stock_model.dart';
 import 'package:agri_connect/features/products/presentation/providers/order_state.dart';
+import 'package:agri_connect/features/products/presentation/providers/stock_provider.dart';
 import 'package:agri_connect/features/products/repository/order_repository.dart';
+import 'package:agri_connect/features/products/repository/stock_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -17,7 +19,11 @@ final orderNotifierProvider = StateNotifierProvider<OrderNotifier, OrderState>((
   ref,
 ) {
   final repository = ref.watch(orderRepositoryProvider);
-  return OrderNotifier(repository: repository);
+  final stockRepository = ref.watch(stockRepositoryProvider);
+  return OrderNotifier(
+    repository: repository,
+    stockRepository: stockRepository,
+  );
 });
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
@@ -43,6 +49,7 @@ OrderModel generateOrder(String buyerId, Map<StockModel, int> cart) {
     id: orderId,
     buyerId: buyerId,
     totalAmount: totalAmount,
+    status: OrderStatus.pending,
     createdAt: now,
   );
 }
@@ -73,8 +80,10 @@ List<OrderItemModel> generateOrderItems(
 
 class OrderNotifier extends StateNotifier<OrderState> {
   final OrderRepository repository;
+  final StockRepository stockRepository;
 
-  OrderNotifier({required this.repository}) : super(OrderInitial());
+  OrderNotifier({required this.repository, required this.stockRepository})
+    : super(OrderInitial());
 
   // Main method for placing an order with balance check
   Future<void> placeOrderWithBalanceCheck({
@@ -93,7 +102,10 @@ class OrderNotifier extends StateNotifier<OrderState> {
 
       // Step 2: Check if user has enough balance
       if (balance < totalAmount) {
-        state = OrderFailure("Insufficient balance to complete the order.");
+        final shortage = totalAmount - balance;
+        state = OrderFailure(
+          "Insufficient balance to complete the order. You need an additional ${shortage.toStringAsFixed(2)} TZS.",
+        );
         return;
       }
 
@@ -101,7 +113,13 @@ class OrderNotifier extends StateNotifier<OrderState> {
       final order = generateOrder(buyerId, cart);
       final orderItems = generateOrderItems(order.id, cart);
 
-      // Step 4: Create order record
+      //step 4: Prepare stock updates map
+      final stockUpdates = [
+        for (var entry in cart.entries)
+          {entry.key.id: (entry.key.quantity - entry.value)},
+      ];
+
+      // Step 5: Create order record
       final orderResult = await repository.createOrder(order);
 
       await orderResult.fold(
@@ -109,7 +127,7 @@ class OrderNotifier extends StateNotifier<OrderState> {
           state = OrderFailure(failure.message);
         },
         (savedOrder) async {
-          // Step 5: Save order items
+          // Step 6: Save order items
           final orderItemResult = await repository.createOrderItems(orderItems);
           await orderItemResult.fold(
             (failure) async {
@@ -120,25 +138,24 @@ class OrderNotifier extends StateNotifier<OrderState> {
             },
             (items) async {
               // Step 6: Deduct balance from buyer
-              final accountNotifier = ref.read(
-               accountProvider.notifier,
-              );
+              final accountNotifier = ref.read(accountProvider.notifier);
               await accountNotifier.withdraw(buyerId, totalAmount);
 
-              // Step 7: Deposit earnings to each seller (group by sellerId)
-              final sellerEarnings = <String, double>{};
-
-              for (var item in orderItems) {
-                sellerEarnings[item.sellerId] =
-                    (sellerEarnings[item.sellerId] ?? 0) +
-                    (item.price * item.quantity);
-              }
-
-              for (final entry in sellerEarnings.entries) {
-                await accountNotifier.deposit(entry.key, entry.value);
-              }
-
-              state = OrderSuccess();
+              // Update stock quantities
+              final stockResult = await stockRepository.updateMultipleStocks(
+                stockUpdates,
+              );
+              await stockResult.fold(
+                (failure) async {
+                  state = OrderFailure(
+                    "Failed to save order items: ${failure.message}",
+                  );
+                  return;
+                },
+                (items) async {
+                  state = OrderSuccess();
+                },
+              );
             },
           );
         },

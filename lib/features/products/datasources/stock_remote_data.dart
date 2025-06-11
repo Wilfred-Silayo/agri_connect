@@ -13,6 +13,7 @@ abstract interface class StockRemoteDataSource {
   Future<StockModel> updateStock(String id, StockModel stock);
   Future<void> deleteStock(String id);
   Future<List<String>> uploadImages(List<XFile> images);
+  Future<List<StockModel>> updateMultipleStocks(List<Map<String, int>> items);
 }
 
 class StockRemoteDataSourceImpl implements StockRemoteDataSource {
@@ -88,6 +89,46 @@ class StockRemoteDataSourceImpl implements StockRemoteDataSource {
               .single();
 
       return StockModel.fromMap(response);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<StockModel>> updateMultipleStocks(
+    List<Map<String, int>> items,
+  ) async {
+    try {
+      List<StockModel> updatedStocks = [];
+
+      for (var item in items) {
+        final id = item['id'];
+        final quantity = item['quantity'];
+
+        if (id == null || quantity == null) continue;
+
+        final currentStock =
+            await supabaseClient
+                .from('stocks')
+                .select('id, quantity')
+                .eq('id', id)
+                .single();
+
+        final int currentQty = currentStock['quantity'];
+        final int newQty = currentQty - quantity;
+
+        final response =
+            await supabaseClient
+                .from('stocks')
+                .update({'quantity': newQty})
+                .eq('id', id)
+                .select()
+                .single();
+
+        updatedStocks.add(StockModel.fromMap(response));
+      }
+
+      return updatedStocks;
     } catch (e) {
       rethrow;
     }
