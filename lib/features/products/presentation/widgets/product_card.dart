@@ -1,4 +1,5 @@
 import 'package:agri_connect/features/products/presentation/widgets/add_to_cart_button.dart';
+import 'package:agri_connect/features/products/presentation/widgets/custom_tool_tip.dart';
 import 'package:agri_connect/features/products/presentation/widgets/stock_image_carousel.dart';
 import 'package:flutter/material.dart';
 import 'package:agri_connect/features/products/models/stock_model.dart';
@@ -84,8 +85,9 @@ class ProductCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  if (onAddToCart != null)
-                    AddToCartButton(onPressed: onAddToCart!),
+                  onAddToCart != null
+                      ? AddToCartButton(onPressed: onAddToCart!)
+                      : CustomToolTip(),
                 ],
               ),
             ),

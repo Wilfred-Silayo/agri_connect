@@ -85,7 +85,7 @@ class StockRepository {
   }
 
   Future<Either<Failure, List<StockModel>>> updateMultipleStocks(
-    List<Map<String, int>> items,
+    List<Map<String, dynamic>> items,
   ) async {
     try {
       final updated = await remoteDataSource.updateMultipleStocks(items);

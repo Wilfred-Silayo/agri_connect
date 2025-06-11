@@ -49,6 +49,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       }
 
       if (next is auth.AuthFailure) {
+        print("Error: ${next.message}");
         showSnackBar(context, next.message);
       } else if (next is auth.AuthSuccess) {
         Navigator.pushReplacement(

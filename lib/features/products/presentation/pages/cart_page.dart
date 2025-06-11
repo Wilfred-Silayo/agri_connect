@@ -36,8 +36,6 @@ class _CartPageState extends ConsumerState<CartPage> {
           balance: currentUserAccount.balance,
           ref: ref,
         );
-
-    ref.invalidate(cartProvider);
     ref.invalidate(userAccountProvider(buyerId));
   }
 
@@ -63,6 +61,7 @@ class _CartPageState extends ConsumerState<CartPage> {
         showSnackBar(context, next.message);
         print('error: ${next.message}');
       } else if (next is OrderSuccess) {
+        ref.invalidate(cartProvider);
         showSnackBar(context, "Order placed Successfully!");
       }
     });
@@ -76,7 +75,7 @@ class _CartPageState extends ConsumerState<CartPage> {
           }
 
           final accountAsync = ref.watch(userAccountProvider(user.id));
-
+          
           return accountAsync.when(
             data: (account) {
               final balance = account.balance;

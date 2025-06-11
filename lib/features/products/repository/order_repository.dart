@@ -10,20 +10,6 @@ class OrderRepository {
   final OrderRemoteDataSource remoteDataSource;
   const OrderRepository(this.remoteDataSource);
 
-  Stream<Either<Failure, List<OrderModel>>> fetchOrder(String? id) async* {
-    try {
-      await for (final orders in remoteDataSource.fetchOrder(id)) {
-        yield right(orders);
-      }
-    } on sb.AuthException catch (e) {
-      yield left(Failure(e.message));
-    } on ServerException catch (e) {
-      yield left(Failure(e.message));
-    } catch (e) {
-      yield left(Failure("Unexpected error: ${e.toString()}"));
-    }
-  }
-
   Future<Either<Failure, List<OrderModel>>> fetchOrdersByDateRange(
     DateTime start,
     DateTime end,
@@ -40,18 +26,23 @@ class OrderRepository {
     }
   }
 
-  Future<Either<Failure, List<OrderModel>>> fetchOrdersByBuyerId(
+  Stream<Either<Failure, List<OrderModel>>> fetchOrdersByBuyerId(
     String buyerId,
-  ) async {
+    String status,
+  ) async* {
     try {
-      final orders = await remoteDataSource.fetchOrdersByBuyerId(buyerId);
-      return right(orders);
+      await for (final orders in remoteDataSource.fetchOrdersByBuyerId(
+        buyerId,
+        status,
+      )) {
+        yield right(orders);
+      }
     } on sb.AuthException catch (e) {
-      return left(Failure(e.message));
+      yield left(Failure(e.message));
     } on ServerException catch (e) {
-      return left(Failure(e.message));
+      yield left(Failure(e.message));
     } catch (e) {
-      return left(Failure("Unexpected error: ${e.toString()}"));
+      yield left(Failure("Unexpected error: ${e.toString()}"));
     }
   }
 

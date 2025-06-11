@@ -1,6 +1,7 @@
 import 'package:agri_connect/core/enums/order_status_enum.dart';
 import 'package:agri_connect/core/shared/providers/supabase_client_provider.dart';
 import 'package:agri_connect/core/utils/date_range.dart';
+import 'package:agri_connect/core/utils/order_query.dart';
 import 'package:agri_connect/features/account/presentation/providers/account_provider.dart';
 import 'package:agri_connect/features/products/datasources/order_remote_data.dart';
 import 'package:agri_connect/features/products/models/order_items_model.dart';
@@ -31,6 +32,12 @@ final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   final remote = OrderRemoteDataSourceImpl(client);
   return OrderRepository(remote);
 });
+
+final ordersByBuyerProvider =
+    StreamProvider.family<List<OrderModel>, OrderQuery>((ref, query) {
+      final notifier = ref.watch(orderNotifierProvider.notifier);
+      return notifier.fetchOrdersByBuyerId(query.buyer, query.status);
+    });
 
 final ordersByDateRangeProvider =
     FutureProvider.family<List<OrderModel>?, DateRange>((ref, range) async {
@@ -116,7 +123,7 @@ class OrderNotifier extends StateNotifier<OrderState> {
       //step 4: Prepare stock updates map
       final stockUpdates = [
         for (var entry in cart.entries)
-          {entry.key.id: (entry.key.quantity - entry.value)},
+          {'id': entry.key.id, 'quantity': entry.value},
       ];
 
       // Step 5: Create order record
@@ -165,15 +172,6 @@ class OrderNotifier extends StateNotifier<OrderState> {
     }
   }
 
-  // Fetch a stream of orders
-  Stream<List<OrderModel>?> fetchOrder(String? id) {
-    return repository.fetchOrder(id).map((either) {
-      return either.fold(
-        (failure) => throw Exception(failure.message),
-        (orders) => orders,
-      );
-    });
-  }
 
   // Fetch orders in a date range
   Future<List<OrderModel>> fetchOrdersByDateRange(
@@ -188,12 +186,13 @@ class OrderNotifier extends StateNotifier<OrderState> {
   }
 
   //  Fetch orders by a buyer ID
-  Future<List<OrderModel>?> fetchOrdersByBuyerId(String buyerId) async {
-    final either = await repository.fetchOrdersByBuyerId(buyerId);
-    return either.fold(
-      (failure) => throw Exception(failure.message),
-      (orders) => orders,
-    );
+  Stream<List<OrderModel>> fetchOrdersByBuyerId(String buyerId, String status) {
+    return repository.fetchOrdersByBuyerId(buyerId, status).map((either) {
+      return either.fold(
+        (failure) => throw Exception(failure.message),
+        (orders) => orders,
+      );
+    });
   }
 
   //  Create order (manual, without balance check)

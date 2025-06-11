@@ -57,7 +57,6 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       }
 
       if (next is auth.AuthFailure) {
-        print("Error: ${next.message}");
         showSnackBar(context, next.message);
       } else if (next is auth.AuthInitial) {
         Navigator.push(

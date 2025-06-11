@@ -11,7 +11,7 @@ void handleAddToCart(
   StockModel stock, {
   bool pushDetail = false,
 }) {
-  final cartItems = ref.read(cartProvider); // ✅ Get fresh cart state
+  final cartItems = ref.read(cartProvider);
 
   if (pushDetail) {
     Navigator.push(
@@ -20,6 +20,7 @@ void handleAddToCart(
         builder:
             (_) => StockDetailPage(
               stock: stock,
+              isProduct: true,
               onAddToCart: () => handleAddToCart(context, ref, stock),
             ),
       ),

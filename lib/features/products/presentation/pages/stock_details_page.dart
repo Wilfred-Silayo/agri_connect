@@ -1,12 +1,19 @@
 import 'package:agri_connect/features/products/models/stock_model.dart';
 import 'package:agri_connect/features/products/presentation/widgets/add_to_cart_button.dart';
+import 'package:agri_connect/features/products/presentation/widgets/custom_tool_tip.dart';
 import 'package:agri_connect/features/products/presentation/widgets/stock_image_carousel.dart';
 import 'package:flutter/material.dart';
 
 class StockDetailPage extends StatefulWidget {
   final StockModel stock;
+  final bool? isProduct;
   final VoidCallback? onAddToCart;
-  const StockDetailPage({super.key, required this.stock, this.onAddToCart});
+  const StockDetailPage({
+    super.key,
+    required this.stock,
+    this.onAddToCart,
+    this.isProduct,
+  });
 
   @override
   State<StockDetailPage> createState() => _StockDetailPageState();
@@ -78,8 +85,11 @@ class _StockDetailPageState extends State<StockDetailPage> {
             ],
           ),
           const SizedBox(height: 30),
-          if (widget.onAddToCart != null)
-            AddToCartButton(onPressed: widget.onAddToCart!),
+          widget.isProduct == null
+              ? widget.onAddToCart != null
+                  ? AddToCartButton(onPressed: widget.onAddToCart!)
+                  : const SizedBox()
+              : CustomToolTip(),
         ],
       ),
     );

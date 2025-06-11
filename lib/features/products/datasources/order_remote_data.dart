@@ -3,9 +3,8 @@ import 'package:agri_connect/features/products/models/order_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract interface class OrderRemoteDataSource {
-  Stream<List<OrderModel>> fetchOrder(String? id);
   Future<List<OrderModel>> fetchOrdersByDateRange(DateTime start, DateTime end);
-  Future<List<OrderModel>> fetchOrdersByBuyerId(String buyerId);
+  Stream<List<OrderModel>> fetchOrdersByBuyerId(String buyerId, String status);
   Future<OrderModel> createOrder(OrderModel order);
   Future<OrderModel> updateOrder(String id, Map<String, dynamic> updatedFields);
   Future<void> deleteOrder(String id);
@@ -15,22 +14,6 @@ abstract interface class OrderRemoteDataSource {
 class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   final SupabaseClient supabaseClient;
   const OrderRemoteDataSourceImpl(this.supabaseClient);
-
-  @override
-  Stream<List<OrderModel>> fetchOrder(String? id) {
-    final stream =
-        (id != null)
-            ? supabaseClient
-                .from('orders')
-                .stream(primaryKey: ['id'])
-                .eq('id', id)
-            : supabaseClient.from('orders').stream(primaryKey: ['id']);
-
-    return stream.map((data) {
-      final models = data.map((e) => OrderModel.fromMap(e)).toList();
-      return models;
-    });
-  }
 
   @override
   Future<List<OrderModel>> fetchOrdersByDateRange(
@@ -99,17 +82,23 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   }
 
   @override
-  Future<List<OrderModel>> fetchOrdersByBuyerId(String buyerId) async {
+  Stream<List<OrderModel>> fetchOrdersByBuyerId(String buyerId, String status) {
     try {
-      final response = await supabaseClient
+      final stream = supabaseClient
           .from('orders')
-          .select()
+          .stream(primaryKey: ['id'])
           .eq('buyer_id', buyerId)
           .order('created_at', ascending: false);
 
-      return response
-          .map<OrderModel>((data) => OrderModel.fromMap(data))
-          .toList();
+      //filter by status here
+      return stream.map((data) {
+        final filtered =
+            data
+                .where((order) => order['status'] == status)
+                .map((e) => OrderModel.fromMap(e))
+                .toList();
+        return filtered;
+      });
     } catch (e) {
       rethrow;
     }
