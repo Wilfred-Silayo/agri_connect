@@ -102,4 +102,19 @@ class OrderRepository {
       return left(Failure("Unexpected error: ${e.toString()}"));
     }
   }
+
+  Future<Either<Failure, List<OrderItemModel>>> fetchOrderItems(
+    String orderId,
+  ) async {
+    try {
+      final orders = await remoteDataSource.fetchOrderItems(orderId);
+      return right(orders);
+    } on sb.AuthException catch (e) {
+      return left(Failure(e.message));
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure("Unexpected error: ${e.toString()}"));
+    }
+  }
 }

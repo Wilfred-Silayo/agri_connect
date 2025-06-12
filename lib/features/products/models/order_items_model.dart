@@ -9,6 +9,7 @@ class OrderItemModel {
   final String sellerId;
   final int quantity;
   final double price;
+  final String? stockName;
   final OrderStatus status;
   final DateTime? deliveredAt;
   final DateTime? confirmedAt;
@@ -23,6 +24,7 @@ class OrderItemModel {
     required this.price,
     required this.status,
     this.deliveredAt,
+    this.stockName,
     this.confirmedAt,
     required this.createdAt,
   });
@@ -58,28 +60,35 @@ class OrderItemModel {
       id: map['id'],
       orderId: map['order_id'],
       stockId: map['stock_id'],
+      stockName: map['stock']?['name'],
       sellerId: map['seller_id'],
       quantity: map['quantity'],
       price: double.parse(map['price'].toString()),
       status: (map['status'] as String).toOrderStatusEnum(),
-      deliveredAt: map['delivered_at'] != null ? DateTime.parse(map['delivered_at']) : null,
-      confirmedAt: map['confirmed_at'] != null ? DateTime.parse(map['confirmed_at']) : null,
+      deliveredAt:
+          map['delivered_at'] != null
+              ? DateTime.parse(map['delivered_at'])
+              : null,
+      confirmedAt:
+          map['confirmed_at'] != null
+              ? DateTime.parse(map['confirmed_at'])
+              : null,
       createdAt: DateTime.parse(map['created_at']),
     );
   }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'order_id': orderId,
-        'stock_id': stockId,
-        'seller_id': sellerId,
-        'quantity': quantity,
-        'price': price,
-        'status': status.value,
-        'delivered_at': deliveredAt?.toIso8601String(),
-        'confirmed_at': confirmedAt?.toIso8601String(),
-        'created_at': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'order_id': orderId,
+    'stock_id': stockId,
+    'seller_id': sellerId,
+    'quantity': quantity,
+    'price': price,
+    'status': status.value,
+    'delivered_at': deliveredAt?.toIso8601String(),
+    'confirmed_at': confirmedAt?.toIso8601String(),
+    'created_at': createdAt.toIso8601String(),
+  };
 
   factory OrderItemModel.fromJson(String source) =>
       OrderItemModel.fromMap(json.decode(source));

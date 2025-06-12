@@ -45,6 +45,14 @@ final ordersByDateRangeProvider =
       return notifier.fetchOrdersByDateRange(range.start, range.end);
     });
 
+final orderItemsProvider = FutureProvider.family<List<OrderItemModel>, String>((
+  ref,
+  orderId,
+) async {
+  final notifier = ref.watch(orderNotifierProvider.notifier);
+  return notifier.fetchOrderItems(orderId);
+});
+
 OrderModel generateOrder(String buyerId, Map<StockModel, int> cart) {
   final orderId = uuid.v4();
   final now = DateTime.now();
@@ -172,7 +180,6 @@ class OrderNotifier extends StateNotifier<OrderState> {
     }
   }
 
-
   // Fetch orders in a date range
   Future<List<OrderModel>> fetchOrdersByDateRange(
     DateTime start,
@@ -219,6 +226,14 @@ class OrderNotifier extends StateNotifier<OrderState> {
     either.fold(
       (failure) => state = OrderFailure(failure.message),
       (order) => state = OrderSuccess(),
+    );
+  }
+
+  Future<List<OrderItemModel>> fetchOrderItems(String orderId) async {
+    final res = await repository.fetchOrderItems(orderId);
+    return res.fold(
+      (failure) => throw Exception(failure.message),
+      (success) => success,
     );
   }
 }

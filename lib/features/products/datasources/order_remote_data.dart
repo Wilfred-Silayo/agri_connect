@@ -6,6 +6,7 @@ abstract interface class OrderRemoteDataSource {
   Future<List<OrderModel>> fetchOrdersByDateRange(DateTime start, DateTime end);
   Stream<List<OrderModel>> fetchOrdersByBuyerId(String buyerId, String status);
   Future<OrderModel> createOrder(OrderModel order);
+  Future<List<OrderItemModel>> fetchOrderItems(String orderId);
   Future<OrderModel> updateOrder(String id, Map<String, dynamic> updatedFields);
   Future<void> deleteOrder(String id);
   Future<void> createOrderItems(List<OrderItemModel> items);
@@ -113,6 +114,23 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       await supabaseClient
           .from('order_items')
           .insert(items.map((e) => e.toMap()).toList());
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<OrderItemModel>> fetchOrderItems(String orderId) async {
+    try {
+      final response = await supabaseClient
+          .from('order_items')
+          .select('*, stock:stocks(name)')
+          .eq('order_id', orderId)
+          .order('created_at', ascending: true);
+
+      return (response as List)
+          .map((item) => OrderItemModel.fromMap(item))
+          .toList();
     } catch (e) {
       rethrow;
     }
