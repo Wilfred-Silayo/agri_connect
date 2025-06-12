@@ -5,11 +5,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 abstract interface class OrderRemoteDataSource {
   Future<List<OrderModel>> fetchOrdersByDateRange(DateTime start, DateTime end);
   Stream<List<OrderModel>> fetchOrdersByBuyerId(String buyerId, String status);
+  Stream<String> checkOrderItemStatus(String orderItemId);
   Future<OrderModel> createOrder(OrderModel order);
   Future<List<OrderItemModel>> fetchOrderItems(String orderId);
   Future<OrderModel> updateOrder(String id, Map<String, dynamic> updatedFields);
   Future<void> deleteOrder(String id);
   Future<void> createOrderItems(List<OrderItemModel> items);
+  Future<void> updateOrderIfAllMatchStatus(String orderId, String newStatus);
+  Future<void> updateOrderItemStatus(
+    String itemId,
+    String newStatus,
+    String? columnToUpdate,
+  );
+  Future<void> cancelOrderItem(String itemId);
+  Future<void> cancelOrder(String orderId);
 }
 
 class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
@@ -106,6 +115,30 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   }
 
   @override
+  Stream<String> checkOrderItemStatus(String orderItemId) {
+    try {
+      final stream = supabaseClient
+          .from('order_items')
+          .stream(primaryKey: ['id'])
+          .eq('id', orderItemId)
+          .limit(1)
+          .map((items) {
+            if (items.isNotEmpty) {
+              final status = items.first['status'] as String?;
+              if (status != null) {
+                return status;
+              }
+            }
+            return '';
+          });
+
+      return stream;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> createOrderItems(List<OrderItemModel> items) async {
     try {
       if (items.isEmpty) {
@@ -129,10 +162,66 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
           .order('created_at', ascending: true);
 
       return (response as List)
-          .map((item) => OrderItemModel.fromMap(item))
+          .map((item) => OrderItemModel.fromMap(item as Map<String, dynamic>))
           .toList();
     } catch (e) {
       rethrow;
     }
+  }
+
+  @override
+  Future<void> updateOrderIfAllMatchStatus(
+    String orderId,
+    String newStatus,
+  ) async {
+    final statuses = await supabaseClient
+        .from('order_items')
+        .select('status')
+        .eq('order_id', orderId);
+
+    final allMatch = (statuses as List).every(
+      (row) => row['status'] == newStatus,
+    );
+
+    if (allMatch) {
+      await supabaseClient
+          .from('orders')
+          .update({'status': newStatus})
+          .eq('id', orderId);
+    }
+  }
+
+  @override
+  Future<void> updateOrderItemStatus(
+    String itemId,
+    String newStatus,
+    String? columnToUpdate,
+  ) async {
+    final updateData = {
+      'status': newStatus,
+      if (columnToUpdate != null)
+        columnToUpdate: DateTime.now().toIso8601String(),
+    };
+
+    await supabaseClient
+        .from('order_items')
+        .update(updateData)
+        .eq('id', itemId);
+  }
+
+  @override
+  Future<void> cancelOrderItem(String itemId) async {
+    await supabaseClient
+        .from('order_items')
+        .update({'status': 'cancelled'})
+        .eq('id', itemId);
+  }
+
+  @override
+  Future<void> cancelOrder(String orderId) async {
+    await supabaseClient
+        .from('orders')
+        .update({'status': 'cancelled'})
+        .eq('id', orderId);
   }
 }

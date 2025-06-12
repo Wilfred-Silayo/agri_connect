@@ -46,6 +46,24 @@ class OrderRepository {
     }
   }
 
+  Stream<Either<Failure, String>> checkOrderItemStatus(
+    String orderItemId,
+  ) async* {
+    try {
+      await for (final status in remoteDataSource.checkOrderItemStatus(
+        orderItemId,
+      )) {
+        yield right(status);
+      }
+    } on sb.AuthException catch (e) {
+      yield left(Failure(e.message));
+    } on ServerException catch (e) {
+      yield left(Failure(e.message));
+    } catch (e) {
+      yield left(Failure("Unexpected error: ${e.toString()}"));
+    }
+  }
+
   Future<Either<Failure, OrderModel>> createOrder(OrderModel order) async {
     try {
       final created = await remoteDataSource.createOrder(order);
@@ -115,6 +133,52 @@ class OrderRepository {
       return left(Failure(e.message));
     } catch (e) {
       return left(Failure("Unexpected error: ${e.toString()}"));
+    }
+  }
+
+  Future<Either<Failure, void>> updateOrderItemStatus({
+    required String orderId,
+    required String itemId,
+    required String newStatus,
+    String? columnToUpdate,
+  }) async {
+    try {
+      await remoteDataSource.updateOrderItemStatus(
+        itemId,
+        newStatus,
+        columnToUpdate,
+      );
+      await remoteDataSource.updateOrderIfAllMatchStatus(
+        orderId,
+        newStatus
+      );
+      return right(null);
+    } catch (e) {
+      return left(Failure('Failed to update status.'));
+    }
+  }
+
+  Future<Either<Failure, void>> cancelOrderItemAndMaybeOrder(
+    String itemId,
+    String orderId,
+  ) async {
+    try {
+      final items = await remoteDataSource.fetchOrderItems(orderId);
+      final anyConfirmed = items.any(
+        (item) => item.status.value == 'confirmed',
+      );
+
+      // Cancel the order item
+      await remoteDataSource.cancelOrderItem(itemId);
+
+      // Cancel the order if no items are confirmed
+      if (!anyConfirmed) {
+        await remoteDataSource.cancelOrder(orderId);
+      }
+
+      return right(null);
+    } catch (e) {
+      return left(Failure('Failed to cancel order item or order.'));
     }
   }
 }

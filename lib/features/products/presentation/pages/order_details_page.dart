@@ -1,4 +1,6 @@
-import 'package:agri_connect/core/shared/providers/supabase_client_provider.dart';
+import 'package:agri_connect/core/enums/order_status_enum.dart';
+import 'package:agri_connect/core/enums/user_enums.dart';
+import 'package:agri_connect/features/auth/presentation/providers/auth_provider.dart';
 import 'package:agri_connect/features/products/models/order_model.dart';
 import 'package:agri_connect/features/products/presentation/providers/order_provider.dart';
 import 'package:agri_connect/features/products/presentation/widgets/hoovable_order_items_tile.dart';
@@ -12,67 +14,160 @@ class OrderDetailsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncItems = ref.watch(orderItemsProvider(order.id));
+    final authAsync = ref.watch(authStateProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Order Details')),
-      body: asyncItems.when(
-        data: (items) {
-          if (items.isEmpty) {
-            return const Center(child: Text('No items in this order.'));
+      body: authAsync.when(
+        data: (user) {
+          if (user == null) {
+            return const Center(child: Text("Not logged in"));
           }
 
-          return ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
+          final userDetailsAsync = ref.watch(userDetailsProvider(user.id));
 
-              return HoverableOrderItemTile(
-                item: item,
-                onConfirm:
-                    item.status != 'confirmed'
-                        ? () async {
-                          final supabase = ref.read(supabaseClientProvider);
+          return userDetailsAsync.when(
+            data: (userModel) {
+              if (userModel == null) {
+                return const Center(child: Text("User details not found"));
+              }
 
-                          // 1. Confirm the item
-                          await supabase
-                              .from('order_items')
-                              .update({
-                                'status': 'confirmed',
-                                'confirmed_at':
-                                    DateTime.now().toIso8601String(),
-                              })
-                              .eq('id', item.id);
+              final role = userModel.userType;
+              final asyncItems = ref.watch(orderItemsProvider(order.id));
 
-                          // 2. Check if all are confirmed
-                          final response = await supabase
-                              .from('order_items')
-                              .select('status')
-                              .eq('order_id', order.id);
+              return asyncItems.when(
+                data: (items) {
+                  if (items.isEmpty) {
+                    return const Center(child: Text('No items in this order.'));
+                  }
 
-                          final statuses = response as List;
-                          final allConfirmed = statuses.every(
-                            (row) => row['status'] == 'confirmed',
+                  return ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final asyncStatus = ref.watch(
+                        orderItemStatusProvider(item.id),
+                      );
+
+                      return asyncStatus.when(
+                        data: (status) {
+                          final orderStatus = status.toOrderStatusEnum();
+                          final isFarmer =
+                              role == 'farmer'.toUserTypeEnum() ||
+                              role == 'farmer and buyer'.toUserTypeEnum();
+                          final isBuyer =
+                              role == 'buyer'.toUserTypeEnum() ||
+                              role == 'farmer and buyer'.toUserTypeEnum();
+
+                          final itemBelongsToUser = item.sellerId == user.id;
+
+                          final noneConfirmed = items.every(
+                            (element) =>
+                                element.status.value !=
+                                OrderStatus.confirmed.value,
                           );
 
-                          // 3. If all confirmed, update order status
-                          if (allConfirmed) {
-                            await supabase
-                                .from('orders')
-                                .update({'status': 'confirmed'})
-                                .eq('id', order.id);
-                          }
+                          final allConfirmed = items.every(
+                            (element) =>
+                                element.status.value ==
+                                OrderStatus.confirmed.value,
+                          );
 
-                          // 4. Refresh
-                          ref.invalidate(orderItemsProvider(order.id));
-                        }
-                        : null,
+                          return Column(
+                            children: [
+                              HoverableOrderItemTile(
+                                item: item.copyWith(status: orderStatus),
+                                onConfirm:
+                                    isFarmer &&
+                                            itemBelongsToUser &&
+                                            (orderStatus !=
+                                                    OrderStatus.delivered ||
+                                                orderStatus !=
+                                                    OrderStatus.cancelled)
+                                        ? () async {
+                                          await ref
+                                              .read(
+                                                orderNotifierProvider.notifier,
+                                              )
+                                              .updateOrderItemStatus(
+                                                orderId: order.id,
+                                                itemId: item.id,
+                                                newStatus:
+                                                    OrderStatus.confirmed.value,
+                                                columnToUpdate: 'confirmed_at',
+                                              );
+                                          ref.invalidate(
+                                            orderItemsProvider(order.id),
+                                          );
+                                        }
+                                        : null,
+                                onCancel:
+                                    isBuyer &&
+                                            noneConfirmed &&
+                                            orderStatus == OrderStatus.pending
+                                        ? () async {
+                                          await ref
+                                              .read(
+                                                orderNotifierProvider.notifier,
+                                              )
+                                              .updateOrderItemStatus(
+                                                orderId: order.id,
+                                                itemId: item.id,
+                                                newStatus:
+                                                    OrderStatus.cancelled.value,
+                                                columnToUpdate: null,
+                                              );
+                                          ref.invalidate(
+                                            orderItemsProvider(order.id),
+                                          );
+                                        }
+                                        : null,
+                                onDeliver:
+                                    isBuyer &&
+                                            orderStatus ==
+                                                OrderStatus.confirmed &&
+                                            allConfirmed
+                                        ? () async {
+                                          await ref
+                                              .read(
+                                                orderNotifierProvider.notifier,
+                                              )
+                                              .updateOrderItemStatus(
+                                                orderId: order.id,
+                                                itemId: item.id,
+                                                newStatus:
+                                                    OrderStatus.delivered.value,
+                                                columnToUpdate: 'delivered_at',
+                                              );
+                                          ref.invalidate(
+                                            orderItemsProvider(order.id),
+                                          );
+                                        }
+                                        : null,
+                              ),
+                            ],
+                          );
+                        },
+                        loading: () => const SizedBox(),
+                        error:
+                            (e, _) => Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text('Error loading status: $e'),
+                            ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
               );
             },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Failed to load user: $e')),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text('Auth error: $e')),
       ),
     );
   }

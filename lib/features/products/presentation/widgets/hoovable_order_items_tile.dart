@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 class HoverableOrderItemTile extends StatefulWidget {
   final OrderItemModel item;
   final VoidCallback? onConfirm;
+  final VoidCallback? onCancel;
+  final VoidCallback? onDeliver;
 
   const HoverableOrderItemTile({
     super.key,
     required this.item,
     this.onConfirm,
+    this.onCancel,
+    this.onDeliver,
   });
 
   @override
@@ -18,8 +22,38 @@ class HoverableOrderItemTile extends StatefulWidget {
 class _HoverableOrderItemTileState extends State<HoverableOrderItemTile> {
   bool _isHovered = false;
 
+  Future<void> _showConfirmationDialog({
+    required String title,
+    required String content,
+    required VoidCallback onConfirmed,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      onConfirmed();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final status = widget.item.status.value;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -45,24 +79,69 @@ class _HoverableOrderItemTileState extends State<HoverableOrderItemTile> {
             const SizedBox(height: 4),
             Text('Quantity: ${widget.item.quantity}'),
             Text('Price per unit: ${widget.item.price.toStringAsFixed(2)} TZS'),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Status: ${widget.item.status.value}',
+                  'Status: $status',
                   style: TextStyle(
-                    color: widget.item.status.value == 'confirmed' ? Colors.green : Colors.black54,
+                    color: status == 'confirmed' ? Colors.green : Colors.black54,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (widget.item.status.value != 'confirmed' && widget.onConfirm != null)
-                  ElevatedButton(
-                    onPressed: widget.onConfirm,
-                    child: const Text('Confirm'),
-                  )
-                else if (widget.item.status.value == 'confirmed')
-                  const Icon(Icons.check_circle, color: Colors.green),
+                Row(
+                  children: [
+                    if (status != 'confirmed' && widget.onConfirm != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ElevatedButton(
+                          onPressed: () => _showConfirmationDialog(
+                            title: 'Confirm Order Item',
+                            content: 'Are you sure you want to confirm this item?',
+                            onConfirmed: widget.onConfirm!,
+                          ),
+                          child: const Text('Confirm'),
+                        ),
+                      ),
+                    if (status != 'cancelled' && widget.onCancel != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: OutlinedButton(
+                          onPressed: () => _showConfirmationDialog(
+                            title: 'Cancel Order Item',
+                            content: 'Are you sure you want to cancel this item?',
+                            onConfirmed: widget.onCancel!,
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                    if (status == 'confirmed' && widget.onDeliver != null)
+                      ElevatedButton(
+                        onPressed: () => _showConfirmationDialog(
+                          title: 'Deliver Order Item',
+                          content: 'Are you sure this item has been delivered?',
+                          onConfirmed: widget.onDeliver!,
+                        ),
+                        child: const Text('Deliver'),
+                      ),
+                    if (status == 'confirmed')
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8.0),
+                        child: Icon(Icons.check_circle, color: Colors.green),
+                      ),
+                    if (status == 'cancelled')
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8.0),
+                        child: Icon(Icons.cancel, color: Colors.red),
+                      ),
+                    if (status == 'delivered')
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8.0),
+                        child: Icon(Icons.local_shipping, color: Colors.blue),
+                      ),
+                  ],
+                )
               ],
             ),
           ],

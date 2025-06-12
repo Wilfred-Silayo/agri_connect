@@ -75,7 +75,7 @@ class _CartPageState extends ConsumerState<CartPage> {
           }
 
           final accountAsync = ref.watch(userAccountProvider(user.id));
-          
+
           return accountAsync.when(
             data: (account) {
               final balance = account.balance;
@@ -278,7 +278,41 @@ class _CartPageState extends ConsumerState<CartPage> {
                             ),
                             ElevatedButton.icon(
                               onPressed: () async {
-                                onCheckout(buyerId: user.id, cart: cart);
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder:
+                                      (context) => AlertDialog(
+                                        title: const Text('Confirm Checkout'),
+                                        content: const Text(
+                                          'Are you sure you want to place this order?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.of(
+                                                  context,
+                                                ).pop(false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed:
+                                                () => Navigator.of(
+                                                  context,
+                                                ).pop(true),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.green,
+                                            ),
+                                            child: const Text(
+                                              'Yes, Place Order',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                );
+
+                                if (confirmed == true) {
+                                  onCheckout(buyerId: user.id, cart: cart);
+                                }
                               },
                               icon: const Icon(
                                 Icons.payment,
