@@ -1,6 +1,11 @@
 import 'package:agri_connect/features/products/models/stock_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+final cartProvider =
+    StateNotifierProvider<CartNotifier, Map<StockModel, int>>((ref) {
+  return CartNotifier();
+});
+
 class CartNotifier extends StateNotifier<Map<StockModel, int>> {
   CartNotifier() : super({});
 
@@ -51,9 +56,6 @@ class CartNotifier extends StateNotifier<Map<StockModel, int>> {
   }
 }
 
-final cartProvider =
-    StateNotifierProvider<CartNotifier, Map<StockModel, int>>((ref) {
-  return CartNotifier();
-});
+
 
 

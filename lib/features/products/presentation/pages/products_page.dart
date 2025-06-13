@@ -50,9 +50,7 @@ class ProductsPage extends ConsumerWidget {
               () => const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               ),
-          error:
-              (e, _) =>
-                  Scaffold(body: Center(child: Text(e.toString()))),
+          error: (e, _) => Scaffold(body: Center(child: Text(e.toString()))),
           data: (user) {
             final isFarmer = user?.userType == UserType.farmer;
 
@@ -183,7 +181,7 @@ class ProductsPage extends ConsumerWidget {
                           ),
                         ),
                     loading: () => const CircularProgressIndicator(),
-                    error: (e, _) => Text('Error loading categories'),
+                    error: (e, _) => Text('Error loading categories: $e'),
                   ),
 
                   const SizedBox(height: 8),
@@ -209,7 +207,7 @@ class ProductsPage extends ConsumerWidget {
                                   ref,
                                   stock,
                                   pushDetail: true,
-                                  isFarmer: isFarmer
+                                  isFarmer: isFarmer,
                                 );
                               },
                               onAddToCart:

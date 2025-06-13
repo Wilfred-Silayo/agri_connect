@@ -1,3 +1,4 @@
+import 'package:agri_connect/core/enums/order_status_enum.dart';
 import 'package:agri_connect/core/exceptions/failures.dart';
 import 'package:agri_connect/core/exceptions/server_exceptions.dart';
 import 'package:agri_connect/features/products/datasources/order_remote_data.dart';
@@ -148,27 +149,31 @@ class OrderRepository {
         newStatus,
         columnToUpdate,
       );
-      await remoteDataSource.updateOrderIfAllMatchStatus(
-        orderId,
-        newStatus
-      );
+      if (newStatus == OrderStatus.confirmed.value) {
+        await remoteDataSource.updateUserAccountBalance(
+          itemId,
+        );
+      }
+      await remoteDataSource.updateOrderIfAllMatchStatus(orderId, newStatus);
       return right(null);
     } catch (e) {
       return left(Failure('Failed to update status.'));
     }
   }
-    Future<Either<Failure,List<OrderModel>>> ordersBySellerProvider(
-    String seller, String status
+
+  Future<Either<Failure, List<OrderModel>>> ordersBySellerProvider(
+    String seller,
+    String status,
   ) async {
     try {
       final orders = await remoteDataSource.ordersBySellerProvider(
-        seller, status
+        seller,
+        status,
       );
-     
+
       return right(orders);
     } catch (e) {
       return left(Failure('Failed to update status.'));
     }
   }
-
 }

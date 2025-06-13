@@ -20,6 +20,7 @@ abstract interface class OrderRemoteDataSource {
   Future<List<OrderModel>> ordersBySellerProvider(String seller, String status);
   Future<void> cancelOrderItem(String itemId);
   Future<void> cancelOrder(String orderId);
+  Future<void> updateUserAccountBalance(String itemId);
 }
 
 class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
@@ -264,6 +265,34 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   }
 
   @override
+  Future<void> updateUserAccountBalance(String itemId) async {
+    final itemRes =
+        await supabaseClient
+            .from('order_items')
+            .select('seller_id, price')
+            .eq('id', itemId)
+            .single();
+
+    final sellerId = itemRes['seller_id'];
+    final itemPrice = (itemRes['price'] as num).toDouble();
+
+    final accountRes =
+        await supabaseClient
+            .from('accounts')
+            .select('balance')
+            .eq('user_id', sellerId)
+            .single();
+
+    final currentBalance = (accountRes['balance'] as num).toDouble();
+    final newBalance = currentBalance + itemPrice;
+
+    await supabaseClient
+        .from('accounts')
+        .update({'balance': newBalance})
+        .eq('user_id', sellerId);
+  }
+
+  @override
   Future<List<OrderModel>> ordersBySellerProvider(
     String seller,
     String status,
@@ -271,17 +300,12 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     // Step 1: Get order_items for this seller and status
     final itemRes = await supabaseClient
         .from('order_items')
-        .select(
-          '*',
-        )
+        .select('*')
         .eq('seller_id', seller)
         .eq('status', status);
 
-    print('print itemRes: $itemRes');
-
     final items =
         (itemRes as List).map((e) => OrderItemModel.fromMap(e)).toList();
-    print('print items: $items');
 
     // Step 2: Group by order_id
     final orderIds = items.map((e) => e.orderId).toSet().toList();
@@ -292,7 +316,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         .from('orders')
         .select('*')
         .filter('id', 'in', '(${orderIds.map((e) => '"$e"').join(",")})');
-    print('print orderRes: $orderRes');
 
     final rawOrders =
         (orderRes as List).map((e) => OrderModel.fromMap(e)).toList();
@@ -304,7 +327,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
               items.where((i) => i.orderId == order.id).toList();
           return order.copyWith(items: filteredItems);
         }).toList();
-    print('print result: $result');
 
     return result;
   }
