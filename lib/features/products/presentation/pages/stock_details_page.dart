@@ -1,3 +1,4 @@
+import 'package:agri_connect/features/auth/presentation/pages/profile_page.dart';
 import 'package:agri_connect/features/products/models/stock_model.dart';
 import 'package:agri_connect/features/products/presentation/widgets/add_to_cart_button.dart';
 import 'package:agri_connect/features/products/presentation/widgets/custom_tool_tip.dart';
@@ -42,6 +43,9 @@ class _StockDetailPageState extends State<StockDetailPage> {
               child: const Text('No image available'),
             ),
           const SizedBox(height: 24),
+          // Contant
+          buildContactButton(),
+          const SizedBox(height: 8),
           Text(
             stock.name,
             style: const TextStyle(
@@ -103,5 +107,46 @@ class _StockDetailPageState extends State<StockDetailPage> {
     }
 
     return CustomToolTip();
+  }
+
+  Widget buildContactButton() {
+    final isProduct = widget.isProduct;
+    final onAddToCart = widget.onAddToCart;
+    if (isProduct == null && onAddToCart == null) {
+      return const SizedBox();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Contact Chip
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ActionChip(
+                    label: const Text('Contact'),
+                    avatar: const Icon(Icons.person, size: 20),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder:
+                              (_) => ProfilePage(userId: widget.stock.userId),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

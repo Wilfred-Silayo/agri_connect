@@ -13,6 +13,7 @@ import 'package:agri_connect/features/auth/presentation/providers/auth_state.dar
     as auth;
 import 'package:agri_connect/features/products/presentation/pages/order_page.dart';
 import 'package:agri_connect/features/products/presentation/pages/purchases_page.dart';
+import 'package:agri_connect/features/products/presentation/pages/sales_page.dart';
 import 'package:agri_connect/features/products/presentation/pages/stocks_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -119,7 +120,7 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> {
                               context,
                               MaterialPageRoute(
                                 builder:
-                                    (context) => PurchasesPage(userId: user.id),
+                                    (context) => SalesPage(userId: user.id),
                               ),
                             ),
                       )

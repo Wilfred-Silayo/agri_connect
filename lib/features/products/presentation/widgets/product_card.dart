@@ -1,3 +1,4 @@
+import 'package:agri_connect/features/auth/presentation/pages/profile_page.dart';
 import 'package:agri_connect/features/products/presentation/widgets/add_to_cart_button.dart';
 import 'package:agri_connect/features/products/presentation/widgets/custom_tool_tip.dart';
 import 'package:agri_connect/features/products/presentation/widgets/stock_image_carousel.dart';
@@ -38,12 +39,37 @@ class ProductCard extends StatelessWidget {
                 child: const Text('No image available'),
               ),
 
-            // Content
+            // Contant
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Contact Chip
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: ActionChip(
+                            label: const Text('Contact'),
+                            avatar: const Icon(Icons.person, size: 20),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => ProfilePage(userId: stock.userId),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     stock.name,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(

@@ -74,10 +74,9 @@ class OrderDetailsPage extends ConsumerWidget {
                                 onConfirm:
                                     isFarmer &&
                                             itemBelongsToUser &&
-                                            (orderStatus !=
-                                                    OrderStatus.delivered ||
-                                                orderStatus !=
-                                                    OrderStatus.cancelled)
+                                            orderStatus !=
+                                                OrderStatus.delivered &&
+                                            orderStatus != OrderStatus.cancelled
                                         ? () async {
                                           await ref
                                               .read(

@@ -9,14 +9,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SalesPage extends ConsumerWidget {
-  final String sellerId;
+  final String userId;
 
-  const SalesPage({super.key, required this.sellerId});
+  const SalesPage({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final query = OrderQuery(
-      buyer: sellerId,
+      buyer: userId,
       status: OrderStatus.delivered.value,
     );
     final asyncOrders = ref.watch(ordersBySellerProvider(query));
