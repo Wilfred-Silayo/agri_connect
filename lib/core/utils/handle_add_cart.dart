@@ -10,6 +10,7 @@ void handleAddToCart(
   WidgetRef ref,
   StockModel stock, {
   bool pushDetail = false,
+  bool isFarmer = false,
 }) {
   final cartItems = ref.read(cartProvider);
 
@@ -20,7 +21,7 @@ void handleAddToCart(
         builder:
             (_) => StockDetailPage(
               stock: stock,
-              isProduct: true,
+              isProduct: !isFarmer,
               onAddToCart: () => handleAddToCart(context, ref, stock),
             ),
       ),

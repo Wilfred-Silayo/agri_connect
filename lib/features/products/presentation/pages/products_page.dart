@@ -209,6 +209,7 @@ class ProductsPage extends ConsumerWidget {
                                   ref,
                                   stock,
                                   pushDetail: true,
+                                  isFarmer: isFarmer
                                 );
                               },
                               onAddToCart:

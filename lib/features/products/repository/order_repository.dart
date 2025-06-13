@@ -93,7 +93,7 @@ class OrderRepository {
     }
   }
 
-  Future<Either<Failure, void>> deleteOrder(String id) async {
+  Future<Either<Failure, void>> deleteOrderAndItems(String id) async {
     try {
       await remoteDataSource.deleteOrder(id);
       return right(null);
@@ -157,28 +157,18 @@ class OrderRepository {
       return left(Failure('Failed to update status.'));
     }
   }
-
-  Future<Either<Failure, void>> cancelOrderItemAndMaybeOrder(
-    String itemId,
-    String orderId,
+    Future<Either<Failure,List<OrderModel>>> ordersBySellerProvider(
+    String seller, String status
   ) async {
     try {
-      final items = await remoteDataSource.fetchOrderItems(orderId);
-      final anyConfirmed = items.any(
-        (item) => item.status.value == 'confirmed',
+      final orders = await remoteDataSource.ordersBySellerProvider(
+        seller, status
       );
-
-      // Cancel the order item
-      await remoteDataSource.cancelOrderItem(itemId);
-
-      // Cancel the order if no items are confirmed
-      if (!anyConfirmed) {
-        await remoteDataSource.cancelOrder(orderId);
-      }
-
-      return right(null);
+     
+      return right(orders);
     } catch (e) {
-      return left(Failure('Failed to cancel order item or order.'));
+      return left(Failure('Failed to update status.'));
     }
   }
+
 }

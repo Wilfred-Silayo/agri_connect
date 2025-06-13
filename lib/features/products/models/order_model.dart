@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:agri_connect/core/enums/order_status_enum.dart';
+import 'package:agri_connect/features/products/models/order_items_model.dart';
 
 class OrderModel {
   final String id;
@@ -7,6 +8,7 @@ class OrderModel {
   final double totalAmount;
   final OrderStatus status;
   final DateTime createdAt;
+  final List<OrderItemModel> items;
 
   OrderModel({
     required this.id,
@@ -14,6 +16,7 @@ class OrderModel {
     required this.totalAmount,
     required this.status,
     required this.createdAt,
+    this.items = const [],
   });
 
   OrderModel copyWith({
@@ -22,12 +25,14 @@ class OrderModel {
     double? totalAmount,
     OrderStatus? status,
     DateTime? createdAt,
+    List<OrderItemModel>? items,
   }) {
     return OrderModel(
       id: id ?? this.id,
       buyerId: buyerId ?? this.buyerId,
       totalAmount: totalAmount ?? this.totalAmount,
       status: status ?? this.status,
+      items: items ?? this.items,
       createdAt: createdAt ?? this.createdAt,
     );
   }

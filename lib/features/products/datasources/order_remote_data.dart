@@ -17,6 +17,7 @@ abstract interface class OrderRemoteDataSource {
     String newStatus,
     String? columnToUpdate,
   );
+  Future<List<OrderModel>> ordersBySellerProvider(String seller, String status);
   Future<void> cancelOrderItem(String itemId);
   Future<void> cancelOrder(String orderId);
 }
@@ -83,9 +84,10 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   }
 
   @override
-  Future<void> deleteOrder(String id) async {
+  Future<void> deleteOrder(String orderId) async {
     try {
-      await supabaseClient.from('orders').delete().eq('id', id);
+      await supabaseClient.from('order_items').delete().eq('order_id', orderId);
+      await supabaseClient.from('orders').delete().eq('id', orderId);
     } catch (e) {
       rethrow;
     }
@@ -197,16 +199,52 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     String newStatus,
     String? columnToUpdate,
   ) async {
-    final updateData = {
-      'status': newStatus,
-      if (columnToUpdate != null)
-        columnToUpdate: DateTime.now().toIso8601String(),
-    };
+    try {
+      // Step 1: Fetch current order item
+      final response =
+          await supabaseClient
+              .from('order_items')
+              .select('stock_id, quantity, status')
+              .eq('id', itemId)
+              .single();
 
-    await supabaseClient
-        .from('order_items')
-        .update(updateData)
-        .eq('id', itemId);
+      final item = response;
+
+      final productId = item['stock_id'];
+      final quantity = item['quantity'];
+      final currentStatus = item['status'];
+
+      // Step 2: If item is being cancelled (and wasn't already), update product stock
+      if (currentStatus != 'cancelled' && newStatus == 'cancelled') {
+        final productResponse =
+            await supabaseClient
+                .from('stocks')
+                .select('quantity')
+                .eq('id', productId)
+                .single();
+
+        final currentStock = productResponse['quantity'] ?? 0;
+
+        await supabaseClient
+            .from('stocks')
+            .update({'quantity': currentStock + quantity})
+            .eq('id', productId);
+      }
+
+      // Step 3: Update order item status
+      final updateData = {
+        'status': newStatus,
+        if (columnToUpdate != null)
+          columnToUpdate: DateTime.now().toIso8601String(),
+      };
+
+      await supabaseClient
+          .from('order_items')
+          .update(updateData)
+          .eq('id', itemId);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   @override
@@ -223,5 +261,51 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         .from('orders')
         .update({'status': 'cancelled'})
         .eq('id', orderId);
+  }
+
+  @override
+  Future<List<OrderModel>> ordersBySellerProvider(
+    String seller,
+    String status,
+  ) async {
+    // Step 1: Get order_items for this seller and status
+    final itemRes = await supabaseClient
+        .from('order_items')
+        .select(
+          '*',
+        )
+        .eq('seller_id', seller)
+        .eq('status', status);
+
+    print('print itemRes: $itemRes');
+
+    final items =
+        (itemRes as List).map((e) => OrderItemModel.fromMap(e)).toList();
+    print('print items: $items');
+
+    // Step 2: Group by order_id
+    final orderIds = items.map((e) => e.orderId).toSet().toList();
+    if (orderIds.isEmpty) return [];
+
+    // Step 3: Fetch corresponding orders
+    final orderRes = await supabaseClient
+        .from('orders')
+        .select('*')
+        .filter('id', 'in', '(${orderIds.map((e) => '"$e"').join(",")})');
+    print('print orderRes: $orderRes');
+
+    final rawOrders =
+        (orderRes as List).map((e) => OrderModel.fromMap(e)).toList();
+
+    // Step 4: Attach only seller's items to each order
+    final result =
+        rawOrders.map((order) {
+          final filteredItems =
+              items.where((i) => i.orderId == order.id).toList();
+          return order.copyWith(items: filteredItems);
+        }).toList();
+    print('print result: $result');
+
+    return result;
   }
 }

@@ -61,6 +61,12 @@ final orderItemStatusProvider = StreamProvider.family<String, String>((
   return notifier.checkOrderItemStatus(orderItemId);
 });
 
+final ordersBySellerProvider = FutureProvider.family
+    .autoDispose<List<OrderModel>, OrderQuery>((ref, query) {
+      final notifier = ref.watch(orderNotifierProvider.notifier);
+      return notifier.ordersBySellerProvider(query.buyer, query.status);
+    });
+
 OrderModel generateOrder(String buyerId, Map<StockModel, int> cart) {
   final orderId = uuid.v4();
   final now = DateTime.now();
@@ -229,11 +235,11 @@ class OrderNotifier extends StateNotifier<OrderState> {
   }
 
   // Delete order
-  Future<void> deleteOrder(String id) async {
-    final either = await repository.deleteOrder(id);
-    either.fold(
+  Future<void> deleteOrderAndItems(String orderId) async {
+    final result = await repository.deleteOrderAndItems(orderId);
+    result.fold(
       (failure) => state = OrderFailure(failure.message),
-      (order) => state = OrderSuccess(),
+      (_) => state = OrderSuccess(),
     );
   }
 
@@ -271,19 +277,14 @@ class OrderNotifier extends StateNotifier<OrderState> {
     );
   }
 
-  Future<void> cancelOrderItemAndMaybeOrder(
-    String itemId,
-    String orderId,
+  Future<List<OrderModel>> ordersBySellerProvider(
+    String seller,
+    String status,
   ) async {
-    state = OrderLoading();
-    final result = await repository.cancelOrderItemAndMaybeOrder(
-      itemId,
-      orderId,
-    );
-
-    result.fold(
-      (failure) => state = OrderFailure(failure.message),
-      (_) => state = OrderSuccess(),
+    final result = await repository.ordersBySellerProvider(seller, status);
+    return result.fold(
+      (failure) => throw Exception(failure.message),
+      (orders) => orders,
     );
   }
 }

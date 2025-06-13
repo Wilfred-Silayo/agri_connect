@@ -85,13 +85,23 @@ class _StockDetailPageState extends State<StockDetailPage> {
             ],
           ),
           const SizedBox(height: 30),
-          widget.isProduct == null
-              ? widget.onAddToCart != null
-                  ? AddToCartButton(onPressed: widget.onAddToCart!)
-                  : const SizedBox()
-              : CustomToolTip(),
+          buildActionButton(),
         ],
       ),
     );
+  }
+
+  Widget buildActionButton() {
+    final isProduct = widget.isProduct;
+    final onAddToCart = widget.onAddToCart;
+    if (isProduct == null && onAddToCart == null) {
+      return const SizedBox();
+    }
+
+    if (isProduct == true && onAddToCart != null) {
+      return AddToCartButton(onPressed: onAddToCart);
+    }
+
+    return CustomToolTip();
   }
 }
