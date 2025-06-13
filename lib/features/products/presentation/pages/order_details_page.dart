@@ -67,12 +67,6 @@ class OrderDetailsPage extends ConsumerWidget {
                                 OrderStatus.confirmed.value,
                           );
 
-                          final allConfirmed = items.every(
-                            (element) =>
-                                element.status.value ==
-                                OrderStatus.confirmed.value,
-                          );
-
                           return Column(
                             children: [
                               HoverableOrderItemTile(
@@ -124,9 +118,7 @@ class OrderDetailsPage extends ConsumerWidget {
                                         : null,
                                 onDeliver:
                                     isBuyer &&
-                                            orderStatus ==
-                                                OrderStatus.confirmed &&
-                                            allConfirmed
+                                            orderStatus == OrderStatus.confirmed
                                         ? () async {
                                           await ref
                                               .read(

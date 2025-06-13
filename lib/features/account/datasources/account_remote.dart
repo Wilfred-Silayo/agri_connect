@@ -20,6 +20,19 @@ class AccountRepositoryImpl implements AccountRemote {
     return AccountModel.fromMap(response);
   }
 
+  Stream<AccountModel?> streamAccount(String userId) {
+  return client
+      .from('accounts')
+      .stream(primaryKey: ['id']) 
+      .eq('user_id', userId)
+      .limit(1)
+      .map((event) {
+        if (event.isEmpty) return null;
+        return AccountModel.fromMap(event.first);
+      });
+}
+
+
   @override
   Future<AccountModel> deposit(String userId, double amount) async {
     final existing = await getAccount(userId);

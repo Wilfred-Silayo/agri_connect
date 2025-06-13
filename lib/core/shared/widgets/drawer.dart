@@ -12,6 +12,7 @@ import 'package:agri_connect/features/auth/presentation/providers/auth_provider.
 import 'package:agri_connect/features/auth/presentation/providers/auth_state.dart'
     as auth;
 import 'package:agri_connect/features/products/presentation/pages/order_page.dart';
+import 'package:agri_connect/features/products/presentation/pages/purchases_page.dart';
 import 'package:agri_connect/features/products/presentation/pages/stocks_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -113,6 +114,14 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> {
                       ? ListTile(
                         leading: Icon(Icons.point_of_sale),
                         title: Text('Sales'),
+                        onTap:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => PurchasesPage(userId: user.id),
+                              ),
+                            ),
                       )
                       : SizedBox(),
                   (userData.userType == UserType.buyer ||
@@ -120,6 +129,14 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> {
                       ? ListTile(
                         leading: Icon(Icons.shopping_cart),
                         title: Text('Purchases'),
+                        onTap:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => PurchasesPage(userId: user.id),
+                              ),
+                            ),
                       )
                       : SizedBox(),
                   ListTile(

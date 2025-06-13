@@ -19,6 +19,13 @@ final userAccountProvider = FutureProvider.family<AccountModel, String>((
   return ref.read(accountProvider.notifier).getAccountById(userId);
 });
 
+final accountStreamProvider = StreamProvider.family<AccountModel?, String>((
+  ref,
+  userId,
+) {
+  return ref.read(accountProvider.notifier).streamAccount(userId);
+});
+
 class AccountNotifier extends StateNotifier<AccountState> {
   final AccountRemote remote;
 
@@ -55,5 +62,9 @@ class AccountNotifier extends StateNotifier<AccountState> {
       state = AccountError(e.toString());
       rethrow;
     }
+  }
+
+  Stream<AccountModel?> streamAccount(String userId) {
+    return remote.streamAccount(userId);
   }
 }

@@ -150,14 +150,13 @@ class OrderRepository {
         columnToUpdate,
       );
       if (newStatus == OrderStatus.confirmed.value) {
-        await remoteDataSource.updateUserAccountBalance(
-          itemId,
-        );
+        await remoteDataSource.updateUserAccountBalance(itemId);
       }
       await remoteDataSource.updateOrderIfAllMatchStatus(orderId, newStatus);
       return right(null);
     } catch (e) {
-      return left(Failure('Failed to update status.'));
+      print(e);
+      return left(Failure('Failed to update status. $e'));
     }
   }
 

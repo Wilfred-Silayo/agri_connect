@@ -177,14 +177,19 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     String orderId,
     String newStatus,
   ) async {
-    final statuses = await supabaseClient
+    final response = await supabaseClient
         .from('order_items')
         .select('status')
         .eq('order_id', orderId);
 
-    final allMatch = (statuses as List).every(
-      (row) => row['status'] == newStatus,
+    // Ensure the response is a list of maps
+    final List<Map<String, dynamic>> statuses = List<Map<String, dynamic>>.from(
+      response,
     );
+
+    final allMatch =
+        statuses.isNotEmpty &&
+        statuses.every((row) => row['status'] == newStatus);
 
     if (allMatch) {
       await supabaseClient
@@ -266,26 +271,46 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
   @override
   Future<void> updateUserAccountBalance(String itemId) async {
+    // Fetch order item details
     final itemRes =
         await supabaseClient
             .from('order_items')
             .select('seller_id, price')
             .eq('id', itemId)
-            .single();
+            .maybeSingle();
+
+    if (itemRes == null) {
+      return;
+    }
 
     final sellerId = itemRes['seller_id'];
-    final itemPrice = (itemRes['price'] as num).toDouble();
+    final itemPrice = (itemRes['price'] as num?)?.toDouble() ?? 0.0;
 
-    final accountRes =
+    // Check if account exists
+    var accountRes =
         await supabaseClient
             .from('accounts')
             .select('balance')
             .eq('user_id', sellerId)
-            .single();
+            .maybeSingle();
 
-    final currentBalance = (accountRes['balance'] as num).toDouble();
+    double currentBalance;
+
+    if (accountRes == null) {
+      // Create new account with initial balance 0
+      await supabaseClient.from('accounts').insert({
+        'user_id': sellerId,
+        'balance': 0.0,
+      });
+
+      currentBalance = 0.0;
+    } else {
+      currentBalance = (accountRes['balance'] as num?)?.toDouble() ?? 0.0;
+    }
+
     final newBalance = currentBalance + itemPrice;
 
+    // Update the balance
     await supabaseClient
         .from('accounts')
         .update({'balance': newBalance})
