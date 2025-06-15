@@ -1,4 +1,8 @@
 import 'package:agri_connect/features/auth/presentation/providers/auth_provider.dart';
+import 'package:agri_connect/features/messages/presentation/providers/message_provider.dart';
+import 'package:agri_connect/features/messages/presentation/widgets/sender_message_card.dart';
+import 'package:agri_connect/features/messages/presentation/widgets/receiver_message_card.dart';
+import 'package:agri_connect/core/utils/message_param.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/scheduler.dart';
@@ -17,61 +21,100 @@ class _ChatListState extends ConsumerState<ChatList> {
 
   @override
   void dispose() {
-    super.dispose();
     messageController.dispose();
+    super.dispose();
+  }
+
+  void scrollToBottomIfNeeded() {
+    if (!messageController.hasClients) return;
+    final distanceFromBottom =
+        messageController.position.maxScrollExtent - messageController.offset;
+    if (distanceFromBottom < 100) {
+      messageController.jumpTo(messageController.position.maxScrollExtent);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authStateProvider).value;
+    if (currentUser == null) return const SizedBox();
 
-    return Center(child: Text("message list"));
+    final messageStream = ref.watch(
+      messageStreamProvider(
+        MessageStreamParams(
+          conversationId: currentUser.id,
+          query: widget.recieverUserId,
+        ),
+      ),
+    );
 
-    // return currentUser == null
-    //     ? const SizedBox()
-    //     : StreamBuilder(
-    //         stream: ref
-    //             .read(messageControllerProvider.notifier)
-    //             .chatStream(currentUser.uid, widget.recieverUserId),
-    //         builder: (context, snapshot) {
-    //           if (snapshot.connectionState == ConnectionState.waiting) {
-    //             return const SizedBox();
-    //           }
+    return messageStream.when(
+      data: (messages) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          scrollToBottomIfNeeded();
+        });
 
-    //           SchedulerBinding.instance.addPostFrameCallback((_) {
-    //             messageController
-    //                 .jumpTo(messageController.position.maxScrollExtent);
-    //           });
-    //           return ListView.builder(
-    //             controller: messageController,
-    //             itemCount: snapshot.data!.length,
-    //             itemBuilder: (context, index) {
-    //               final messageData = snapshot.data![index];
-    //               var timeSent = DateFormat.Hm().format(messageData.timeSent);
+        return ListView.builder(
+          controller: messageController,
+          itemCount: messages.length,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+          itemBuilder: (context, index) {
+            final message = messages[index];
+            final timeSent = DateFormat.Hm().format(message.timeSent);
 
-    //               if (!messageData.isSeen &&
-    //                   messageData.receiverid == currentUser.uid) {
-    //                 ref
-    //                     .read(messageControllerProvider.notifier)
-    //                     .setChatMessageSeen(
-    //                       widget.recieverUserId,
-    //                       currentUser.uid,
-    //                       messageData.id,
-    //                     );
-    //               }
-    //               if (messageData.senderId == currentUser.uid) {
-    //                 return MyMessageCard(
-    //                   message: messageData.text,
-    //                   date: timeSent,
-    //                   isSeen: messageData.isSeen,
-    //                 );
-    //               }
-    //               return SenderMessageCard(
-    //                 message: messageData.text,
-    //                 date: timeSent,
-    //               );
-    //             },
-    //           );
-    //         });
+            // Mark as seen if receiver and not seen
+            if (!message.isSeen && message.receiverId == currentUser.id) {
+              ref
+                  .read(messageNotifierProvider.notifier)
+                  .markMessageAsSeen(message.id);
+            }
+
+            // Handle long press to delete
+            return GestureDetector(
+              onLongPress: () {
+                showDialog(
+                  context: context,
+                  builder:
+                      (_) => AlertDialog(
+                        title: const Text('Delete Message'),
+                        content: const Text(
+                          'Do you want to delete this message?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              ref
+                                  .read(messageNotifierProvider.notifier)
+                                  .deleteMessage(message.id, currentUser.id);
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Delete'),
+                          ),
+                        ],
+                      ),
+                );
+              },
+              child:
+                  message.senderId == currentUser.id
+                      ? ReceiverMessageCard(
+                        message: message.text,
+                        date: timeSent,
+                        isSeen: message.isSeen,
+                      )
+                      : SenderMessageCard(
+                        message: message.text,
+                        date: timeSent,
+                      ),
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => Center(child: Text('Error: ${err.toString()}')),
+    );
   }
 }

@@ -1,4 +1,8 @@
+import 'package:uuid/uuid.dart';
+
 class Message {
+  static final Uuid _uuid = Uuid();
+
   final String id;
   final String conversationId;
   final String senderId;
@@ -70,6 +74,25 @@ class Message {
       isSeen: map['isSeen'] as bool,
       isDeletedBySender: map['isDeletedBySender'] as bool,
       isDeletedByReceiver: map['isDeletedByReceiver'] as bool,
+    );
+  }
+
+  factory Message.create({
+    required String conversationId,
+    required String senderId,
+    required String receiverId,
+    required String text,
+  }) {
+    return Message(
+      id: _uuid.v4(),
+      conversationId: conversationId,
+      senderId: senderId,
+      receiverId: receiverId,
+      text: text,
+      timeSent: DateTime.now(),
+      isSeen: false,
+      isDeletedBySender: false,
+      isDeletedByReceiver: false,
     );
   }
 
