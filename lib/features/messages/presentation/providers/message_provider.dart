@@ -30,6 +30,11 @@ final messageStreamProvider = StreamProvider.family
       return notifier.fetchMessages(params.conversationId, params.query);
     });
 
+final conversationsProvider = StreamProvider.family<List<Conversation>, String>((ref, userId) {
+  return ref.read(messageNotifierProvider.notifier).fetchConversations(userId);
+});
+
+
 class MessageNotifier extends StateNotifier<MessageState> {
   final MessageRepository _repository;
   MessageNotifier(this._repository) : super(MessageInitial());
@@ -59,7 +64,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
     await _repository.deleteMessage(messageId, userId);
   }
 
-  Stream<List<Conversation>?> fetchConversations(String userId) {
+  Stream<List<Conversation>> fetchConversations(String userId) {
     return _repository.fetchConversations(userId).map((either) {
       return either.fold(
         (failure) => throw Exception(failure.message),
@@ -72,7 +77,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
     await _repository.deleteConversation(conversationId, userId);
   }
 
-   Future<Conversation?> getConversationBetween(String userId1, String userId2) async {
+   Future<Conversation> getConversationBetween(String userId1, String userId2) async {
     final result = await _repository.getConversationBetween(userId1, userId2);
     return result.fold(
       (failure) => throw Exception(failure.message),
