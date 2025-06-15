@@ -85,7 +85,7 @@ class MessageRepository {
     }
   }
 
-  Future<Either<Failure, Conversation>> getConversationBetween(
+  Future<Either<Failure, Conversation?>> getConversationBetween(
     String userId1,
     String userId2,
   ) async {

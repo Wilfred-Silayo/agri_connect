@@ -1,4 +1,5 @@
 import 'package:agri_connect/core/shared/providers/supabase_client_provider.dart';
+import 'package:agri_connect/core/utils/conversation_param.dart';
 import 'package:agri_connect/core/utils/message_param.dart';
 import 'package:agri_connect/features/messages/datasources/message_remote.dart';
 import 'package:agri_connect/features/messages/models/conversation_model.dart';
@@ -30,10 +31,20 @@ final messageStreamProvider = StreamProvider.family
       return notifier.fetchMessages(params.conversationId, params.query);
     });
 
-final conversationsProvider = StreamProvider.family<List<Conversation>, String>((ref, userId) {
-  return ref.read(messageNotifierProvider.notifier).fetchConversations(userId);
-});
+final conversationsProvider = StreamProvider.family<List<Conversation>, String>(
+  (ref, userId) {
+    return ref
+        .read(messageNotifierProvider.notifier)
+        .fetchConversations(userId);
+  },
+);
 
+final conversationProvider =
+    FutureProvider.family<Conversation?, ConversationParams>((ref, params) {
+      return ref
+          .read(messageNotifierProvider.notifier)
+          .getConversationBetween(params.senderId, params.receiverId);
+    });
 
 class MessageNotifier extends StateNotifier<MessageState> {
   final MessageRepository _repository;
@@ -77,7 +88,10 @@ class MessageNotifier extends StateNotifier<MessageState> {
     await _repository.deleteConversation(conversationId, userId);
   }
 
-   Future<Conversation> getConversationBetween(String userId1, String userId2) async {
+  Future<Conversation?> getConversationBetween(
+    String userId1,
+    String userId2,
+  ) async {
     final result = await _repository.getConversationBetween(userId1, userId2);
     return result.fold(
       (failure) => throw Exception(failure.message),
@@ -85,7 +99,10 @@ class MessageNotifier extends StateNotifier<MessageState> {
     );
   }
 
-  Future<Conversation> createConversation(String userId1, String userId2) async {
+  Future<Conversation> createConversation(
+    String userId1,
+    String userId2,
+  ) async {
     final result = await _repository.createConversation(userId1, userId2);
     return result.fold(
       (failure) => throw Exception(failure.message),

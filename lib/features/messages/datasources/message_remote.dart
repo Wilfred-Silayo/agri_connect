@@ -16,7 +16,7 @@ abstract interface class MessageRemote {
     required String message,
     required DateTime timeSent,
   });
-  Future<Conversation> getConversationBetween(String userId1, String userId2);
+  Future<Conversation?> getConversationBetween(String userId1, String userId2);
 
   Future<Conversation> createConversation(String userId1, String userId2);
 }
@@ -136,7 +136,7 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
   }
 
   @override
-  Future<Conversation> getConversationBetween(
+  Future<Conversation?> getConversationBetween(
     String userId1,
     String userId2,
   ) async {
@@ -149,7 +149,9 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
             )
             .maybeSingle();
 
-    return Conversation.fromMap(response as Map<String, dynamic>);
+    if (response == null) return null;
+
+    return Conversation.fromMap(response);
   }
 
   @override
