@@ -48,30 +48,28 @@ class Conversation {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'user1Id': user1Id,
-      'user2Id': user2Id,
-      'lastMessage': lastMessage,
-      'lastUpdated': lastUpdated.millisecondsSinceEpoch,
-      'isSeenByUser1': isSeenByUser1,
-      'isSeenByUser2': isSeenByUser2,
-      'isDeletedByUser1': isDeletedByUser1,
-      'isDeletedByUser2': isDeletedByUser2,
+      'user1_id': user1Id,
+      'user2_id': user2Id,
+      'last_message': lastMessage,
+      'last_updated': lastUpdated.toIso8601String(),
+      'is_seen_by_user1': isSeenByUser1,
+      'is_seen_by_user2': isSeenByUser2,
+      'is_deleted_by_user1': isDeletedByUser1,
+      'is_deleted_by_user2': isDeletedByUser2,
     };
   }
 
   factory Conversation.fromMap(Map<String, dynamic> map) {
     return Conversation(
       id: map['id'] as String,
-      user1Id: map['user1Id'] as String,
-      user2Id: map['user2Id'] as String,
-      lastMessage: map['lastMessage'] as String,
-      lastUpdated: DateTime.fromMillisecondsSinceEpoch(
-        map['lastUpdated'] as int,
-      ),
-      isSeenByUser1: map['isSeenByUser1'] as bool,
-      isSeenByUser2: map['isSeenByUser2'] as bool,
-      isDeletedByUser1: map['isDeletedByUser1'] as bool,
-      isDeletedByUser2: map['isDeletedByUser2'] as bool,
+      user1Id: map['user1_id'] as String,
+      user2Id: map['user2_id'] as String,
+      lastMessage: map['last_message'] as String,
+      lastUpdated: DateTime.parse(map['last_updated']),
+      isSeenByUser1: map['is_seen_by_user1'] as bool,
+      isSeenByUser2: map['is_seen_by_user2'] as bool,
+      isDeletedByUser1: map['is_deleted_by_user1'] as bool,
+      isDeletedByUser2: map['is_deleted_by_user2'] as bool,
     );
   }
 

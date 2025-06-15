@@ -19,10 +19,16 @@ class _BottomChatFieldState extends ConsumerState<BottomChatField> {
   final TextEditingController _messageController = TextEditingController();
   final FocusNode focusNode = FocusNode();
   bool isShowSendButton = false;
+  bool isLoading = false;
 
   void sendTextMessage(User currentUser) async {
+    setState(() => isLoading = true);
+
     final trimmed = _messageController.text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty) {
+      setState(() => isLoading = false);
+      return;
+    }
 
     var conversation = await ref
         .read(messageNotifierProvider.notifier)
@@ -42,7 +48,10 @@ class _BottomChatFieldState extends ConsumerState<BottomChatField> {
     await ref.read(messageNotifierProvider.notifier).sendMessage(message);
 
     _messageController.clear();
-    setState(() => isShowSendButton = false);
+    setState(() {
+      isLoading = false;
+      isShowSendButton = false;
+    });
   }
 
   void showKeyboard() => focusNode.requestFocus();
@@ -106,17 +115,20 @@ class _BottomChatFieldState extends ConsumerState<BottomChatField> {
             const SizedBox(width: 8),
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: GestureDetector(
-                onTap: () => sendTextMessage(currentUser),
-                child: CircleAvatar(
-                  backgroundColor: const Color(0xFF128C7E),
-                  radius: 25,
-                  child: Icon(
-                    isShowSendButton ? Icons.send : Icons.mic,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              child:
+                  isLoading
+                      ? const CircularProgressIndicator()
+                      : GestureDetector(
+                        onTap: () => sendTextMessage(currentUser),
+                        child: CircleAvatar(
+                          backgroundColor: const Color(0xFF128C7E),
+                          radius: 25,
+                          child: Icon(
+                            isShowSendButton ? Icons.send : Icons.mic,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
             ),
           ],
         ),

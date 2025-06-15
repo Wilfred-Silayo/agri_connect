@@ -28,7 +28,7 @@ final messageNotifierProvider =
 final messageStreamProvider = StreamProvider.family
     .autoDispose<List<Message>, MessageStreamParams>((ref, params) {
       final notifier = ref.read(messageNotifierProvider.notifier);
-      return notifier.fetchMessages(params.conversationId, params.query);
+      return notifier.fetchMessages(params.conversationId, params.currentUserId);
     });
 
 final conversationsProvider = StreamProvider.family<List<Conversation>, String>(
@@ -50,8 +50,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
   final MessageRepository _repository;
   MessageNotifier(this._repository) : super(MessageInitial());
 
-  Stream<List<Message>> fetchMessages(String conversationId, String? query) {
-    return _repository.fetchMessages(conversationId, query).map((either) {
+  Stream<List<Message>> fetchMessages(String conversationId, String currentUserId) {
+    return _repository.fetchMessages(conversationId, currentUserId).map((either) {
       return either.fold(
         (failure) => throw Exception(failure.message),
         (messages) => messages,

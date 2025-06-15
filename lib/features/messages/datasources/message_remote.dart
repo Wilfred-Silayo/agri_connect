@@ -4,7 +4,10 @@ import 'package:agri_connect/features/messages/models/message_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract interface class MessageRemote {
-  Stream<List<Message>> fetchMessages(String conversationId, String? query);
+  Stream<List<Message>> fetchMessages(
+    String conversationId,
+    String currentUserId,
+  );
   Future<void> sendMessage(Message message);
   Future<void> markMessageAsSeen(String messageId);
   Future<void> deleteMessage(String messageId, String userId);
@@ -27,32 +30,44 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
 
   // Stream all messages in a conversation
   @override
-  Stream<List<Message>> fetchMessages(String conversationId, String? query) {
+  Stream<List<Message>> fetchMessages(
+    String conversationId,
+    String currentUserId,
+  ) {
     return supabaseClient
         .from('messages')
         .stream(primaryKey: ['id'])
-        .eq('conversationId', conversationId)
-        .order('timeSent')
-        .map((rows) => rows.map((e) => Message.fromMap(e)).toList());
+        .eq('conversation_id', conversationId)
+        .order('time_sent', ascending: true)
+        .map((rows) {
+          return rows.map((e) => Message.fromMap(e)).where((message) {
+            final isSender = message.senderId == currentUserId;
+            if (isSender) {
+              return message.isDeletedBySender == false;
+            } else {
+              return message.isDeletedByReceiver == false;
+            }
+          }).toList();
+        });
   }
 
   //  Send message
   @override
   Future<void> sendMessage(Message message) async {
-    final response = await supabaseClient
-        .from('messages')
-        .insert(message.toMap());
-    if (response.error != null) throw ServerException(response.error!.message);
+    try {
+      await supabaseClient.from('messages').insert(message.toMap());
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
   }
 
   // Mark a message as seen
   @override
   Future<void> markMessageAsSeen(String messageId) async {
-    final response = await supabaseClient
+    await supabaseClient
         .from('messages')
-        .update({'isSeen': true})
+        .update({'is_seen': true})
         .eq('id', messageId);
-    if (response.error != null) throw ServerException(response.error!.message);
   }
 
   //  Soft-delete message by user
@@ -65,15 +80,15 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
             .eq('id', messageId)
             .single();
 
-    if (message['senderId'] == userId) {
+    if (message['sender_id'] == userId) {
       await supabaseClient
           .from('messages')
-          .update({'isDeletedBySender': true})
+          .update({'is_deleted_by_sender': true})
           .eq('id', messageId);
-    } else if (message['receiverId'] == userId) {
+    } else if (message['receiver_id'] == userId) {
       await supabaseClient
           .from('messages')
-          .update({'isDeletedByReceiver': true})
+          .update({'is_deleted_by_receiver': true})
           .eq('id', messageId);
     }
   }
@@ -84,17 +99,21 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
     return supabaseClient
         .from('conversations')
         .stream(primaryKey: ['id'])
-        .order('lastUpdated', ascending: false)
+        .order('last_updated', ascending: false)
         .map(
           (rows) =>
-              rows
-                  .map((e) => Conversation.fromMap(e))
-                  .where((c) => c.user1Id == userId || c.user2Id == userId)
-                  .toList(),
+              rows.map((e) => Conversation.fromMap(e)).where((c) {
+                final isUser1 = c.user1Id == userId;
+                final isUser2 = c.user2Id == userId;
+
+                if (isUser1 && !c.isDeletedByUser1) return true;
+                if (isUser2 && !c.isDeletedByUser2) return true;
+                return false;
+              }).toList(),
         );
   }
 
-  // Soft-delete conversation for a user
+  // Soft-delete conversation and its messages for a user
   @override
   Future<void> deleteConversation(String conversationId, String userId) async {
     final conversation =
@@ -105,10 +124,17 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
             .single();
 
     final updates = <String, dynamic>{};
-    if (conversation['user1Id'] == userId) {
-      updates['isDeletedByUser1'] = true;
-    } else if (conversation['user2Id'] == userId) {
-      updates['isDeletedByUser2'] = true;
+    final messageUpdates = <String, dynamic>{};
+
+    final isUser1 = conversation['user1_id'] == userId;
+    final isUser2 = conversation['user2_id'] == userId;
+
+    if (isUser1) {
+      updates['is_deleted_by_user1'] = true;
+      messageUpdates['is_deleted_by_sender'] = true;
+    } else if (isUser2) {
+      updates['is_deleted_by_user2'] = true;
+      messageUpdates['is_deleted_by_receiver'] = true;
     }
 
     if (updates.isNotEmpty) {
@@ -116,6 +142,12 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
           .from('conversations')
           .update(updates)
           .eq('id', conversationId);
+
+      await supabaseClient
+          .from('messages')
+          .update(messageUpdates)
+          .eq('conversation_id', conversationId)
+          .eq(isUser1 ? 'sender_id' : 'receiver_id', userId);
     }
   }
 
@@ -129,8 +161,8 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
     await supabaseClient
         .from('conversations')
         .update({
-          'lastMessage': message,
-          'lastUpdated': timeSent.toIso8601String(),
+          'last_message': message,
+          'last_updated': timeSent.toIso8601String(),
         })
         .eq('id', conversationId);
   }
@@ -145,7 +177,7 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
             .from('conversations')
             .select()
             .or(
-              'and(user1Id.eq.$userId1,user2Id.eq.$userId2),and(user1Id.eq.$userId2,user2Id.eq.$userId1)',
+              'and(user1_id.eq.$userId1,user2_id.eq.$userId2),and(user1_id.eq.$userId2,user2_id.eq.$userId1)',
             )
             .maybeSingle();
 
@@ -162,12 +194,14 @@ class MessageRemoteDataSourceImpl implements MessageRemote {
     final now = DateTime.now().toIso8601String();
 
     final insertData = {
-      'user1Id': userId1,
-      'user2Id': userId2,
-      'lastMessage': '',
-      'lastUpdated': now,
-      'isDeletedByUser1': false,
-      'isDeletedByUser2': false,
+      'user1_id': userId1,
+      'user2_id': userId2,
+      'last_message': '',
+      'last_updated': now,
+      'is_seen_by_user1': false,
+      'is_seen_by_user2': false,
+      'is_deleted_by_user1': false,
+      'is_deleted_by_user2': false,
     };
 
     final response =

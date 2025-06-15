@@ -59,7 +59,7 @@ class _ChatListState extends ConsumerState<ChatList> {
           messageStreamProvider(
             MessageStreamParams(
               conversationId: conversation.id,
-              query: widget.recieverUserId,
+              currentUserId: currentUser.id,
             ),
           ),
         );
@@ -69,6 +69,14 @@ class _ChatListState extends ConsumerState<ChatList> {
             SchedulerBinding.instance.addPostFrameCallback((_) {
               scrollToBottomIfNeeded();
             });
+            if (messages.isEmpty) {
+              return const Center(
+                child: Text(
+                  'Start a conversation...',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              );
+            }
 
             return ListView.builder(
               controller: messageController,

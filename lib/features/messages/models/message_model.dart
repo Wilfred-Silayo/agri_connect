@@ -52,28 +52,28 @@ class Message {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'conversationId': conversationId,
-      'senderId': senderId,
-      'receiverId': receiverId,
+      'conversation_id': conversationId,
+      'sender_id': senderId,
+      'receiver_id': receiverId,
       'text': text,
-      'timeSent': timeSent.millisecondsSinceEpoch,
-      'isSeen': isSeen,
-      'isDeletedBySender': isDeletedBySender,
-      'isDeletedByReceiver': isDeletedByReceiver,
+      'time_sent': timeSent.toIso8601String(),
+      'is_seen': isSeen,
+      'is_deleted_by_sender': isDeletedBySender,
+      'is_deleted_by_receiver': isDeletedByReceiver,
     };
   }
 
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
       id: map['id'] as String,
-      conversationId: map['conversationId'] as String,
-      senderId: map['senderId'] as String,
-      receiverId: map['receiverId'] as String,
+      conversationId: map['conversation_id'] as String,
+      senderId: map['sender_id'] as String,
+      receiverId: map['receiver_id'] as String,
       text: map['text'] as String,
-      timeSent: DateTime.fromMillisecondsSinceEpoch(map['timeSent'] as int),
-      isSeen: map['isSeen'] as bool,
-      isDeletedBySender: map['isDeletedBySender'] as bool,
-      isDeletedByReceiver: map['isDeletedByReceiver'] as bool,
+      timeSent: DateTime.parse(map['time_sent']),
+      isSeen: map['is_seen'] as bool,
+      isDeletedBySender: map['is_deleted_by_sender'] as bool,
+      isDeletedByReceiver: map['is_deleted_by_receiver'] as bool,
     );
   }
 

@@ -10,17 +10,17 @@ class MessageRepository {
 
   Stream<Either<Failure, List<Message>>> fetchMessages(
     String conversationId,
-    String? query,
+    String currentUserId,
   ) async* {
     try {
       await for (final messages in remoteDataSource.fetchMessages(
         conversationId,
-        query,
+        currentUserId,
       )) {
         yield right(messages);
       }
     } catch (e) {
-      yield left(Failure("Error fetching messages"));
+      yield left(Failure(e.toString()));
     }
   }
 

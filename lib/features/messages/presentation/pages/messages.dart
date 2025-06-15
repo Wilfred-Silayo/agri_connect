@@ -22,7 +22,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     for (String messageId in selectedMessages) {
       ref
           .read(messageNotifierProvider.notifier)
-          .deleteMessage(messageId, currentUserId);
+          .deleteConversation(messageId, currentUserId);
     }
 
     setState(() {
@@ -37,106 +37,140 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Messages'),
-        actions: selectedMessages.isNotEmpty
-            ? currentUser == null
-                ? null
-                : [
-                    IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () {
-                        _deleteSelectedMessages(currentUser.id);
-                      },
-                    ),
-                  ]
-            : null,
+        actions:
+            selectedMessages.isNotEmpty
+                ? currentUser == null
+                    ? null
+                    : [
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () {
+                          _deleteSelectedMessages(currentUser.id);
+                        },
+                      ),
+                    ]
+                : null,
       ),
-      body: currentUser == null
-          ? const SizedBox()
-          : ref.watch(conversationsProvider(currentUser.id)).when(
-                data: (data) {
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: data.length,
-                    itemBuilder: (context, index) {
-                      var conversation = data[index];
-                      var receiverId = currentUser.id != conversation.user1Id? conversation.user1Id:conversation.user2Id;
-                      return ref
-                          .watch(userDetailsProvider(receiverId))
-                          .when(
-                              data: (user) {
-                                if(user == null){return const SizedBox();}
-                                final bool isSelected = selectedMessages
-                                    .contains(conversation.id);
-                                return Column(
-                                  children: [
-                                    InkWell(
-                                      onTap: () {
-                                        Navigator.push(
-                                            context, MaterialPageRoute(builder: (context)=>ChatPage(receiver: user)));
-                                      },
-                                      onLongPress: () {
-                                        setState(() {
-                                          if (isSelected) {
-                                            selectedMessages
-                                                .remove(conversation.id);
-                                          } else {
-                                            selectedMessages
-                                                .add(conversation.id);
-                                          }
-                                        });
-                                      },
-                                      child: Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 8.0),
-                                        child: ListTile(
-                                          title: Text(
-                                            user.fullName,
-                                            style: const TextStyle(
-                                              fontSize: 18,
+      body:
+          currentUser == null
+              ? const SizedBox()
+              : ref
+                  .watch(conversationsProvider(currentUser.id))
+                  .when(
+                    data: (data) {
+                      if (data.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No conversations',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: data.length,
+                        itemBuilder: (context, index) {
+                          var conversation = data[index];
+                          var receiverId =
+                              currentUser.id != conversation.user1Id
+                                  ? conversation.user1Id
+                                  : conversation.user2Id;
+                          return ref
+                              .watch(userDetailsProvider(receiverId))
+                              .when(
+                                data: (user) {
+                                  if (user == null) {
+                                    return const SizedBox();
+                                  }
+                                  final bool isSelected = selectedMessages
+                                      .contains(conversation.id);
+                                  return Column(
+                                    children: [
+                                      InkWell(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      ChatPage(receiver: user),
                                             ),
+                                          );
+                                        },
+                                        onLongPress: () {
+                                          setState(() {
+                                            if (isSelected) {
+                                              selectedMessages.remove(
+                                                conversation.id,
+                                              );
+                                            } else {
+                                              selectedMessages.add(
+                                                conversation.id,
+                                              );
+                                            }
+                                          });
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8.0,
                                           ),
-                                          subtitle: Padding(
-                                            padding:
-                                                const EdgeInsets.only(top: 6.0),
-                                            child: Text(
-                                              conversation.lastMessage,
-                                              overflow: TextOverflow.ellipsis,
-                                              style:
-                                                  const TextStyle(fontSize: 15),
+                                          child: ListTile(
+                                            title: Text(
+                                              user.fullName,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                              ),
                                             ),
-                                          ),
-                                          leading: CustomProfileImage(
-                                              url: user.avatarUrl,
-                                              radius: 30),
-                                          trailing: isSelected
-                                              ? const Icon(Icons.check)
-                                              : Text(
-                                                  DateFormat.Hm().format(
-                                                      conversation.lastUpdated),
-                                                  style: const TextStyle(
-                                                    color: Colors.grey,
-                                                    fontSize: 13,
-                                                  ),
+                                            subtitle: Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 6.0,
+                                              ),
+                                              child: Text(
+                                                conversation.lastMessage,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 15,
                                                 ),
+                                              ),
+                                            ),
+                                            leading: CustomProfileImage(
+                                              url: user.avatarUrl,
+                                              radius: 30,
+                                            ),
+                                            trailing:
+                                                isSelected
+                                                    ? const Icon(Icons.check)
+                                                    : Text(
+                                                      DateFormat.Hm().format(
+                                                        conversation
+                                                            .lastUpdated,
+                                                      ),
+                                                      style: const TextStyle(
+                                                        color: Colors.grey,
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    const Divider(
+                                      const Divider(
                                         color: Colors.blueGrey,
-                                        indent: 85),
-                                  ],
-                                );
-                              },
-                              error: (error, st) => null,
-                              loading: () => null);
+                                        indent: 85,
+                                      ),
+                                    ],
+                                  );
+                                },
+                                error: (error, st) => null,
+                                loading: () => null,
+                              );
+                        },
+                      );
                     },
-                  );
-                },
-                error: (error, stackTrace) => ErrorDisplay(
-                  error: error.toString(),
-                ),
-                loading: () => const Loader(),
-              ),
+                    error:
+                        (error, stackTrace) =>
+                            ErrorDisplay(error: error.toString()),
+                    loading: () => const Loader(),
+                  ),
     );
   }
 }
